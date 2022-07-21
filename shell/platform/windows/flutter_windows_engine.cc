@@ -295,6 +295,14 @@ bool FlutterWindowsEngine::RunWithEntrypoint(const char* entrypoint) {
         host->accessibility_bridge_->AddFlutterSemanticsCustomActionUpdate(
             action);
       };
+  args.log_message_callback = [](const char* tag,
+                                 const char* message,
+                                 void* userdata) {
+    if (tag != nullptr && tag[0]) {
+      std::cout << tag << ": ";
+    }
+    std::cout << message << std::endl;
+  };
 
   args.custom_task_runners = &custom_task_runners;
 
