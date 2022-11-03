@@ -5,6 +5,10 @@
 import("//flutter/common/config.gni")
 import("//flutter/testing/testing.gni")
 
+if (is_win) {
+  import("//build/toolchain/win/midl.gni")
+}
+
 config("accessibility_config") {
   visibility = [
     "//flutter/shell/platform/common:common_cpp_accessibility",
@@ -25,6 +29,7 @@ source_set("accessibility") {
     "ax_build",
     "base",
     "gfx",
+    "//flutter/third_party/iaccessible2",
   ]
 
   public_configs = [ ":accessibility_config" ]
@@ -99,6 +104,8 @@ if (enable_unittests) {
           "base/win/scoped_safearray_unittest.cc",
           "base/win/scoped_variant_unittest.cc",
         ]
+        
+        public_deps = [ "//flutter/third_party/iaccessible2" ]
       }
 
       sources += [
