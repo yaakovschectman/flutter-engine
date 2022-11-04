@@ -2560,9 +2560,30 @@ IFACEMETHODIMP AXPlatformNodeWin::get_relationTargetsOfType(BSTR type,
                                           IUnknown*** targets,
                                           LONG* n_targets) { return E_NOTIMPL; }
 
-IFACEMETHODIMP AXPlatformNodeWin::get_attributes(BSTR* attributes) { return E_NOTIMPL; }
+IFACEMETHODIMP AXPlatformNodeWin::get_attributes(BSTR* attributes) {
+  NotifyAddAXModeFlags(kScreenReaderAndHTMLAccessibilityModes);
+  std::vector<std::u16string> attribute_vector;
+  ComputeAttributes(&attribute_vector);
+  std::wstring attr_str;
+  for (auto attribute : attribute_vector) {
+    attr_str += std::wstring(attribute.begin(), attribute.end()) + L";";
+  }
+  if (attr_str.empty()) {
+    return S_FALSE;
+  }
+  *attributes = SysAllocString(attr_str.c_str());
+  return E_NOTIMPL;
+}
 
-IFACEMETHODIMP AXPlatformNodeWin::get_indexInParent(LONG* index_in_parent) { return E_NOTIMPL; }
+IFACEMETHODIMP AXPlatformNodeWin::get_indexInParent(LONG* index_in_parent) {
+  std::optional<int> index = GetIndexInParent();
+  if (!index.has_value()) {
+    return E_FAIL;
+  }
+
+  *index_in_parent = index.value();
+  return S_OK;
+}
 
 IFACEMETHODIMP AXPlatformNodeWin::get_nRelations(LONG* n_relations) { return E_NOTIMPL; }
 
