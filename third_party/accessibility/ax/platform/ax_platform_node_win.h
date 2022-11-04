@@ -22,6 +22,7 @@
 #include "ax/ax_export.h"
 #include "ax/platform/ax_platform_node_base.h"
 #include "base/compiler_specific.h"
+#include "flutter/third_party/iaccessible2/ia2_api_all.h"
 #include "gfx/range/range.h"
 
 //
@@ -52,7 +53,9 @@ class AXPlatformNodeWin;
 // TODO(nektar): Remove multithread superclass since we don't support it.
 class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
     AXPlatformNodeWin : public CComObjectRootEx<CComMultiThreadModel>,
-                        public IDispatchImpl<IAccessible>,
+                        public IDispatchImpl<IAccessible2_4,
+                                             &IID_IAccessible2_4,
+                                             &LIBID_IAccessible2Lib>,
                         public IExpandCollapseProvider,
                         public IGridItemProvider,
                         public IGridProvider,
@@ -79,6 +82,10 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
   // an interface.
   COM_INTERFACE_ENTRY(AXPlatformNodeWin)
   COM_INTERFACE_ENTRY(IAccessible)
+  COM_INTERFACE_ENTRY(IAccessible2)
+  COM_INTERFACE_ENTRY(IAccessible2_2)
+  COM_INTERFACE_ENTRY(IAccessible2_3)
+  COM_INTERFACE_ENTRY(IAccessible2_4)
   COM_INTERFACE_ENTRY(IDispatch)
   COM_INTERFACE_ENTRY(IExpandCollapseProvider)
   COM_INTERFACE_ENTRY(IGridItemProvider)
@@ -186,6 +193,71 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
                                   VARIANT var_id,
                                   LONG* topic_id) override;
   IFACEMETHODIMP put_accName(VARIANT var_id, BSTR put_name) override;
+
+  //
+  // IAccessible2 methods.
+  //
+
+  IFACEMETHODIMP role(LONG* role) override;
+
+  IFACEMETHODIMP get_states(AccessibleStates* states) override;
+
+  IFACEMETHODIMP get_uniqueID(LONG* unique_id) override;
+
+  IFACEMETHODIMP get_windowHandle(HWND* window_handle) override;
+
+  IFACEMETHODIMP get_relationTargetsOfType(BSTR type,
+                                           LONG max_targets,
+                                           IUnknown*** targets,
+                                           LONG* n_targets) override;
+
+  IFACEMETHODIMP get_attributes(BSTR* attributes) override;
+
+  IFACEMETHODIMP get_indexInParent(LONG* index_in_parent) override;
+
+  IFACEMETHODIMP get_nRelations(LONG* n_relations) override;
+
+  IFACEMETHODIMP get_relation(LONG relation_index,
+                              IAccessibleRelation** relation) override;
+
+  IFACEMETHODIMP get_relations(LONG max_relations,
+                               IAccessibleRelation** relations,
+                               LONG* n_relations) override;
+
+  IFACEMETHODIMP get_attribute(BSTR name, VARIANT* attribute) override;
+  IFACEMETHODIMP get_extendedRole(BSTR* extended_role) override;
+  IFACEMETHODIMP scrollTo(enum IA2ScrollType scroll_type) override;
+  IFACEMETHODIMP scrollToPoint(enum IA2CoordinateType coordinate_type,
+                               LONG x,
+                               LONG y) override;
+  IFACEMETHODIMP get_groupPosition(LONG* group_level,
+                                   LONG* similar_items_in_group,
+                                   LONG* position_in_group) override;
+  IFACEMETHODIMP get_localizedExtendedRole(
+      BSTR* localized_extended_role) override;
+  IFACEMETHODIMP get_nExtendedStates(LONG* n_extended_states) override;
+  IFACEMETHODIMP get_extendedStates(LONG max_extended_states,
+                                    BSTR** extended_states,
+                                    LONG* n_extended_states) override;
+  IFACEMETHODIMP get_localizedExtendedStates(
+      LONG max_localized_extended_states,
+      BSTR** localized_extended_states,
+      LONG* n_localized_extended_states) override;
+  IFACEMETHODIMP get_locale(IA2Locale* locale) override;
+  IFACEMETHODIMP get_accessibleWithCaret(IUnknown** accessible,
+                                         LONG* caret_offset) override;
+
+  //
+  // IAccessible2_3 methods.
+  //
+
+  IFACEMETHODIMP get_selectionRanges(IA2Range** ranges, LONG* nRanges) override;
+
+  //
+  // IAccessible2_4 methods.
+  //
+
+  IFACEMETHODIMP setSelectionRanges(LONG nRanges, IA2Range* ranges) override;
 
   //
   // IExpandCollapseProvider methods.
