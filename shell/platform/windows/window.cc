@@ -217,7 +217,7 @@ LRESULT Window::OnGetObject(UINT const message,
     }
     // Return the IAccessible for the root view.
     // Microsoft::WRL::ComPtr<IAccessible> root(root_view);
-    accessibility_root_->SetWindow(root_view);
+    accessibility_root_->SetWindow(static_cast<AccessibilityRootNode*>(root_view));
     Microsoft::WRL::ComPtr<IAccessible> root(accessibility_root_);
     LRESULT lresult = LresultFromObject(IID_IAccessible, wparam, root.Get());
     return lresult;

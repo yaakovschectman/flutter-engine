@@ -12,21 +12,30 @@
 #include <memory>
 
 #include "flutter/shell/platform/windows/accessibility_alert.h"
+#include "flutter/third_party/iaccessible2/ia2_api_all.h"
 
 namespace flutter {
 
 // A parent node that wraps the window IAccessible node.
 class __declspec(uuid("fedb8280-ea4f-47a9-98fe-5d1a557fe4b3"))
     AccessibilityRootNode : public CComObjectRootEx<CComMultiThreadModel>,
-                            public IDispatchImpl<IAccessible>,
+                            public IDispatchImpl<IAccessible2_4,
+                                                 &IID_IAccessible2_4,
+                                                 &LIBID_IAccessible2Lib>,
                             public IServiceProvider {
  public:
   static constexpr LONG kAlertChildId = 2;
 
   BEGIN_COM_MAP(AccessibilityRootNode)
+  COM_INTERFACE_ENTRY2(IDispatch, IAccessible2_2)
+  COM_INTERFACE_ENTRY2(IUnknown, IDispatchImpl)
   COM_INTERFACE_ENTRY(AccessibilityRootNode)
   COM_INTERFACE_ENTRY(IAccessible)
-  COM_INTERFACE_ENTRY(IDispatch)
+  COM_INTERFACE_ENTRY(IAccessible2)
+  COM_INTERFACE_ENTRY(IAccessible2_2)
+  COM_INTERFACE_ENTRY(IAccessible2_3)
+  COM_INTERFACE_ENTRY(IAccessible2_4)
+  //COM_INTERFACE_ENTRY(IDispatch)
   COM_INTERFACE_ENTRY(IServiceProvider)
   END_COM_MAP()
 
@@ -105,6 +114,71 @@ class __declspec(uuid("fedb8280-ea4f-47a9-98fe-5d1a557fe4b3"))
   IFACEMETHODIMP put_accName(VARIANT var_id, BSTR put_name) override;
 
   //
+  // IAccessible2 methods.
+  //
+
+  IFACEMETHODIMP role(LONG* role) override;
+
+  IFACEMETHODIMP get_states(AccessibleStates* states) override;
+
+  IFACEMETHODIMP get_uniqueID(LONG* unique_id) override;
+
+  IFACEMETHODIMP get_windowHandle(HWND* window_handle) override;
+
+  IFACEMETHODIMP get_relationTargetsOfType(BSTR type,
+                                           LONG max_targets,
+                                           IUnknown*** targets,
+                                           LONG* n_targets) override;
+
+  IFACEMETHODIMP get_attributes(BSTR* attributes) override;
+
+  IFACEMETHODIMP get_indexInParent(LONG* index_in_parent) override;
+
+  IFACEMETHODIMP get_nRelations(LONG* n_relations) override;
+
+  IFACEMETHODIMP get_relation(LONG relation_index,
+                              IAccessibleRelation** relation) override;
+
+  IFACEMETHODIMP get_relations(LONG max_relations,
+                               IAccessibleRelation** relations,
+                               LONG* n_relations) override;
+
+  IFACEMETHODIMP get_attribute(BSTR name, VARIANT* attribute) override;
+  IFACEMETHODIMP get_extendedRole(BSTR* extended_role) override;
+  IFACEMETHODIMP scrollTo(enum IA2ScrollType scroll_type) override;
+  IFACEMETHODIMP scrollToPoint(enum IA2CoordinateType coordinate_type,
+                               LONG x,
+                               LONG y) override;
+  IFACEMETHODIMP get_groupPosition(LONG* group_level,
+                                   LONG* similar_items_in_group,
+                                   LONG* position_in_group) override;
+  IFACEMETHODIMP get_localizedExtendedRole(
+      BSTR* localized_extended_role) override;
+  IFACEMETHODIMP get_nExtendedStates(LONG* n_extended_states) override;
+  IFACEMETHODIMP get_extendedStates(LONG max_extended_states,
+                                    BSTR** extended_states,
+                                    LONG* n_extended_states) override;
+  IFACEMETHODIMP get_localizedExtendedStates(
+      LONG max_localized_extended_states,
+      BSTR** localized_extended_states,
+      LONG* n_localized_extended_states) override;
+  IFACEMETHODIMP get_locale(IA2Locale* locale) override;
+  IFACEMETHODIMP get_accessibleWithCaret(IUnknown** accessible,
+                                         LONG* caret_offset) override;
+
+  //
+  // IAccessible2_3 methods.
+  //
+
+  IFACEMETHODIMP get_selectionRanges(IA2Range** ranges, LONG* nRanges) override;
+
+  //
+  // IAccessible2_4 methods.
+  //
+
+  IFACEMETHODIMP setSelectionRanges(LONG nRanges, IA2Range* ranges) override;
+
+  //
   // IServiceProvider method.
   //
 
@@ -115,7 +189,7 @@ class __declspec(uuid("fedb8280-ea4f-47a9-98fe-5d1a557fe4b3"))
   AccessibilityRootNode();
   virtual ~AccessibilityRootNode();
 
-  void SetWindow(IAccessible* window);
+  void SetWindow(IAccessible2* window);
 
   void SetAlert(AccessibilityAlert* alert);
 
@@ -127,7 +201,7 @@ class __declspec(uuid("fedb8280-ea4f-47a9-98fe-5d1a557fe4b3"))
   // Helper method to redirect method calls to the contained window or alert.
   IAccessible* GetTargetAndChildID(VARIANT* var_id);
 
-  IAccessible* window_accessible_;
+  IAccessible2* window_accessible_;
 
   AccessibilityAlert* alert_accessible_;
 };

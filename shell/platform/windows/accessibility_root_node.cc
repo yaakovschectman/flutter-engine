@@ -255,6 +255,93 @@ IFACEMETHODIMP AccessibilityRootNode::put_accName(VARIANT var_id,
 }
 
 //
+// IAccessible2 methods.
+//
+
+IFACEMETHODIMP AccessibilityRootNode::role(LONG* role) {
+  /*if (!window_accessible_) {
+    return E_FAIL;
+  }
+  return window_accessible_->role(role);*/
+  return E_NOTIMPL;
+}
+
+IFACEMETHODIMP AccessibilityRootNode::get_states(AccessibleStates* states) {
+  *states = IA2_STATE_OPAQUE;
+  return S_OK;
+}
+
+IFACEMETHODIMP AccessibilityRootNode::get_uniqueID(LONG* unique_id) {
+  *unique_id = 0;
+  return S_OK;
+}
+
+IFACEMETHODIMP AccessibilityRootNode::get_windowHandle(HWND* window_handle) {
+  /*if (!window_accessible_) {
+    return E_FAIL;
+  }
+  return window_accessible_->get_windowHandle(window_handle);*/
+  return E_NOTIMPL;
+}
+
+IFACEMETHODIMP AccessibilityRootNode::get_relationTargetsOfType(BSTR type,
+                                          LONG max_targets,
+                                          IUnknown*** targets,
+                                          LONG* n_targets) { return E_NOTIMPL; }
+
+IFACEMETHODIMP AccessibilityRootNode::get_attributes(BSTR* attributes) {
+  return E_NOTIMPL;
+}
+
+IFACEMETHODIMP AccessibilityRootNode::get_indexInParent(LONG* index_in_parent) {
+  return E_NOTIMPL;
+}
+
+IFACEMETHODIMP AccessibilityRootNode::get_nRelations(LONG* n_relations) { return E_NOTIMPL; }
+
+IFACEMETHODIMP AccessibilityRootNode::get_relation(LONG relation_index,
+                            IAccessibleRelation** relation) { return E_NOTIMPL; }
+
+IFACEMETHODIMP AccessibilityRootNode::get_relations(LONG max_relations,
+                              IAccessibleRelation** relations,
+                              LONG* n_relations) { return E_NOTIMPL; }
+
+IFACEMETHODIMP AccessibilityRootNode::get_attribute(BSTR name, VARIANT* attribute) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_extendedRole(BSTR* extended_role) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::scrollTo(enum IA2ScrollType scroll_type) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::scrollToPoint(enum IA2CoordinateType coordinate_type,
+                              LONG x,
+                              LONG y) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_groupPosition(LONG* group_level,
+                                  LONG* similar_items_in_group,
+                                  LONG* position_in_group) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_localizedExtendedRole(
+    BSTR* localized_extended_role) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_nExtendedStates(LONG* n_extended_states) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_extendedStates(LONG max_extended_states,
+                                  BSTR** extended_states,
+                                  LONG* n_extended_states) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_localizedExtendedStates(
+    LONG max_localized_extended_states,
+    BSTR** localized_extended_states,
+    LONG* n_localized_extended_states) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_locale(IA2Locale* locale) { return E_NOTIMPL; }
+IFACEMETHODIMP AccessibilityRootNode::get_accessibleWithCaret(IUnknown** accessible,
+                                        LONG* caret_offset) { return E_NOTIMPL; }
+
+//
+// IAccessible2_3 methods.
+//
+
+IFACEMETHODIMP AccessibilityRootNode::get_selectionRanges(IA2Range** ranges, LONG* nRanges) { return E_NOTIMPL; }
+
+//
+// IAccessible2_4 methods.
+//
+
+IFACEMETHODIMP AccessibilityRootNode::setSelectionRanges(LONG nRanges, IA2Range* ranges) { return E_NOTIMPL; }
+
+//
 // IServiceProvider implementation.
 //
 
@@ -265,7 +352,7 @@ IFACEMETHODIMP AccessibilityRootNode::QueryService(REFGUID guidService,
     return E_INVALIDARG;
   }
 
-  if (guidService == IID_IAccessible) {
+  if (guidService == IID_IAccessible || guidService == IID_IAccessible2 || guidService == IID_IAccessible2_2 || guidService == IID_IAccessible2_3 || guidService == IID_IAccessible2_4) {
     return QueryInterface(riid, object);
   }
 
@@ -273,7 +360,7 @@ IFACEMETHODIMP AccessibilityRootNode::QueryService(REFGUID guidService,
   return E_FAIL;
 }
 
-void AccessibilityRootNode::SetWindow(IAccessible* window) {
+void AccessibilityRootNode::SetWindow(IAccessible2* window) {
   window_accessible_ = window;
 }
 
