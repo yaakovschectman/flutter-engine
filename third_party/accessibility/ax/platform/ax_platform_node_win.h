@@ -78,6 +78,8 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
 
  public:
   BEGIN_COM_MAP(AXPlatformNodeWin)
+  COM_INTERFACE_ENTRY2(IDispatch, IAccessible2_2)
+  COM_INTERFACE_ENTRY2(IUnknown, IDispatchImpl)
   // TODO(nektar): Find a way to remove the following entry because it's not
   // an interface.
   COM_INTERFACE_ENTRY(AXPlatformNodeWin)
@@ -86,7 +88,7 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
   COM_INTERFACE_ENTRY(IAccessible2_2)
   COM_INTERFACE_ENTRY(IAccessible2_3)
   COM_INTERFACE_ENTRY(IAccessible2_4)
-  COM_INTERFACE_ENTRY(IDispatch)
+  //COM_INTERFACE_ENTRY(IDispatch)
   COM_INTERFACE_ENTRY(IExpandCollapseProvider)
   COM_INTERFACE_ENTRY(IGridItemProvider)
   COM_INTERFACE_ENTRY(IGridProvider)

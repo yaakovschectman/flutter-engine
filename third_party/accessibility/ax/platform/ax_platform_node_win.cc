@@ -2652,7 +2652,7 @@ IFACEMETHODIMP AXPlatformNodeWin::QueryService(REFGUID guidService,
   COM_OBJECT_VALIDATE_1_ARG(object);
 
   if (guidService == IID_IAccessible || guidService == IID_IAccessible2 || guidService == IID_IAccessible2_2 || guidService == IID_IAccessible2_3 || guidService == IID_IAccessible2_4) {
-    return QueryInterface(riid, object);
+      return QueryInterface(riid, object);
   }
 
   // TODO(suproteem): Include IAccessibleEx in the list, potentially checking
