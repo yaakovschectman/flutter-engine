@@ -94,6 +94,10 @@ source_set("ax") {
       "platform/ax_platform_node_delegate_utils_win.h",
       "platform/ax_platform_node_win.cc",
       "platform/ax_platform_node_win.h",
+      "platform/ax_platform_node_textprovider_win.cc",
+      "platform/ax_platform_node_textprovider_win.h",
+      "platform/ax_platform_node_textrangeprovider_win.cc",
+      "platform/ax_platform_node_textrangeprovider_win.h",
       "platform/uia_registrar_win.cc",
       "platform/uia_registrar_win.h",
     ]
