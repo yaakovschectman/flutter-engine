@@ -67,6 +67,7 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
                         public IServiceProvider,
                         public ITableItemProvider,
                         public ITableProvider,
+                        public ITextProvider,
                         public IToggleProvider,
                         public IValueProvider,
                         public IWindowProvider,
@@ -94,6 +95,7 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
   COM_INTERFACE_ENTRY(ISelectionProvider)
   COM_INTERFACE_ENTRY(ITableItemProvider)
   COM_INTERFACE_ENTRY(ITableProvider)
+  COM_INTERFACE_ENTRY(ITextProvider)
   COM_INTERFACE_ENTRY(IToggleProvider)
   COM_INTERFACE_ENTRY(IValueProvider)
   COM_INTERFACE_ENTRY(IWindowProvider)
@@ -304,6 +306,29 @@ class AX_EXPORT __declspec(uuid("26f5641a-246d-457b-a96d-07f3fae6acf2"))
   IFACEMETHODIMP GetRowHeaders(SAFEARRAY** result) override;
 
   IFACEMETHODIMP get_RowOrColumnMajor(RowOrColumnMajor* result) override;
+
+  //
+  // ITextProvider methods.
+  //
+  
+  // TODO(schectman): impelement all ITextProvider methods
+  // https://github.com/flutter/flutter/issues/114547
+
+  IFACEMETHODIMP get_DocumentRange(ITextRangeProvider** result) override;
+
+  IFACEMETHODIMP get_SupportedTextSelection(SupportedTextSelection* result) override;
+
+  IFACEMETHODIMP GetSelection(SAFEARRAY** result) override;
+
+  IFACEMETHODIMP GetVisibleRanges(SAFEARRAY** result) override;
+
+  IFACEMETHODIMP RangeFromChild(IRawElementProviderSimple* child, ITextRangeProvider** result) override;
+
+  IFACEMETHODIMP RangeFromPoint(UiaPoint point, ITextRangeProvider** result) override;
+
+  // ITextProvider helper method.
+
+  ITextRangeProvider* GetRangeFromChild(AXPlatformNodeWin* ancestor, AXPlatformNodeWin* descendant);
 
   //
   // IToggleProvider methods.
