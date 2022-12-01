@@ -7,6 +7,8 @@
 #include <utility>
 
 #include "flutter/third_party/accessibility/ax/ax_action_data.h"
+#include "flutter/third_party/accessibility/ax/ax_tree_manager_map.h"
+#include "flutter/third_party/accessibility/ax/platform/ax_platform_tree_manager.h"
 #include "flutter/third_party/accessibility/gfx/geometry/rect_conversions.h"
 
 namespace flutter {
@@ -112,6 +114,36 @@ gfx::Rect FlutterPlatformNodeDelegate::GetBoundsRect(
 std::weak_ptr<FlutterPlatformNodeDelegate::OwnerBridge>
 FlutterPlatformNodeDelegate::GetOwnerBridge() const {
   return bridge_;
+}
+
+gfx::NativeViewAccessible FlutterPlatformNodeDelegate::GetLowestPlatformAncestor() const {
+  auto bridge_ptr = bridge_.lock();
+  BASE_DCHECK(bridge_ptr);
+  auto lowest_platform_acnestor = ax_node_->GetLowestPlatformAncestor();
+  if (lowest_platform_acnestor) {
+    return bridge_ptr->GetNativeAccessibleFromId(ax_node_->GetLowestPlatformAncestor()->id());
+  }
+  return nullptr;
+}
+
+ui::AXNodePosition::AXPositionInstance FlutterPlatformNodeDelegate::CreateTextPositionAt(int offset) const {
+  return ui::AXNodePosition::CreatePosition(*ax_node_, offset);
+}
+
+ui::AXPlatformNode* FlutterPlatformNodeDelegate::GetPlatformNode() const {
+  return nullptr;
+}
+
+ui::AXPlatformNode* FlutterPlatformNodeDelegate::GetFromNodeID(int32_t node_id) {
+  ui::AXTreeManager* tree_manager = ui::AXTreeManagerMap::GetInstance().GetManager(ax_node_->tree()->GetAXTreeID());
+  ui::AXPlatformTreeManager* platform_manager = static_cast<ui::AXPlatformTreeManager*>(tree_manager);
+  return platform_manager->GetPlatformNodeFromTree(node_id);
+}
+
+ui::AXPlatformNode* FlutterPlatformNodeDelegate::GetFromTreeIDAndNodeID(const ui::AXTreeID& tree_id, int32_t node_id) {
+  ui::AXTreeManager* tree_manager = ui::AXTreeManagerMap::GetInstance().GetManager(tree_id);
+  ui::AXPlatformTreeManager* platform_manager = static_cast<ui::AXPlatformTreeManager*>(tree_manager);
+  return platform_manager->GetPlatformNodeFromTree(node_id);
 }
 
 }  // namespace flutter

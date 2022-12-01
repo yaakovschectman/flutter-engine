@@ -11,6 +11,8 @@
 #include "ax_role_properties.h"
 #include "ax_table_info.h"
 #include "ax_tree.h"
+#include "ax_tree_manager.h"
+#include "ax_tree_manager_map.h"
 #include "base/color_utils.h"
 #include "base/string_utils.h"
 
@@ -1197,6 +1199,30 @@ bool AXNode::IsEmbeddedGroup() const {
   return ui::IsSetLike(parent()->data().role);
 }
 
+AXNode* AXNode::GetLowestPlatformAncestor() const {
+  AXNode* current_node = const_cast<AXNode*>(this);
+  AXNode* lowest_unignored_node = current_node;
+  for (; lowest_unignored_node && lowest_unignored_node->IsIgnored();
+       lowest_unignored_node = lowest_unignored_node->parent()) {
+  }
+
+  // `highest_leaf_node` could be nullptr.
+  AXNode* highest_leaf_node = lowest_unignored_node;
+  // For the purposes of this method, a leaf node does not include leaves in the
+  // internal accessibility tree, only in the platform exposed tree.
+  for (AXNode* ancestor_node = lowest_unignored_node; ancestor_node;
+       ancestor_node = ancestor_node->GetUnignoredParent()) {
+    if (ancestor_node->IsLeaf())
+      highest_leaf_node = ancestor_node;
+  }
+  if (highest_leaf_node)
+    return highest_leaf_node;
+
+  if (lowest_unignored_node)
+    return lowest_unignored_node;
+  return current_node;
+}
+
 AXNode* AXNode::GetTextFieldAncestor() const {
   AXNode* parent = GetUnignoredParent();
 
@@ -1207,6 +1233,26 @@ AXNode* AXNode::GetTextFieldAncestor() const {
     parent = parent->GetUnignoredParent();
   }
 
+  return nullptr;
+}
+
+bool AXNode::IsDescendantOfCrossingTreeBoundary(const AXNode* ancestor) const {
+  if (!ancestor)
+    return false;
+  if (this == ancestor)
+    return true;
+  if (const AXNode* parent = GetParentCrossingTreeBoundary())
+    return parent->IsDescendantOfCrossingTreeBoundary(ancestor);
+  return false;
+}
+
+AXNode* AXNode::GetParentCrossingTreeBoundary() const {
+  BASE_DCHECK(!tree_->GetTreeUpdateInProgressState());
+  if (parent_)
+    return parent_;
+  const AXTreeManager* manager = AXTreeManagerMap::GetInstance().GetManager(tree_->GetAXTreeID());
+  if (manager)
+    return manager->GetParentNodeFromParentTreeAsAXNode();
   return nullptr;
 }
 

@@ -191,6 +191,9 @@ class AX_EXPORT AXNode final {
   // Return true if this object is equal to or a descendant of |ancestor|.
   bool IsDescendantOf(const AXNode* ancestor) const;
 
+  bool IsDescendantOfCrossingTreeBoundary(const AXNode* ancestor) const;
+AXNode* GetParentCrossingTreeBoundary() const;
+
   // Gets the text offsets where new lines start either from the node's data or
   // by computing them and caching the result.
   std::vector<int> GetOrComputeLineStartOffsets();
@@ -435,6 +438,8 @@ class AX_EXPORT AXNode final {
 
   // Finds and returns a pointer to ordered set containing node.
   AXNode* GetOrderedSet() const;
+
+  AXNode* GetLowestPlatformAncestor() const;
 
  private:
   // Computes the text offset where each line starts by traversing all child
