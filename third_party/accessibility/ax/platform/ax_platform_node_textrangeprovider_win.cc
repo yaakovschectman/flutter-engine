@@ -239,13 +239,13 @@ HRESULT AXPlatformNodeTextRangeProviderWin::ExpandToEnclosingUnitImpl(
       // use kStopAtLastAnchorBoundary, which will stop at the tree boundary if
       // no previous line start is found.
       SetStart(start()->CreateBoundaryStartPosition(
-          AXBoundaryBehavior::StopAtLastAnchorBoundary,
+          AXBoundaryBehavior::StopIfAlreadyAtBoundary, // TODO(schectman) Used to be StopAtLastAnchorBoundary but went too far. Now skips forward when at the end of aline
           ax::mojom::MoveDirection::kBackward,
           &AtStartOfLinePredicate,
           &AtEndOfLinePredicate));
       // From the start we just walked backwards to, walk forwards to the line
       // end position.
-      SetEnd(start()->CreateBoundaryEndPosition(
+      SetEnd(end()->CreateBoundaryEndPosition( // TODO(schectman) used to be start, maybe should stay that way
           AXBoundaryBehavior::StopAtLastAnchorBoundary,
           ax::mojom::MoveDirection::kForward,
           &AtStartOfLinePredicate,
@@ -254,8 +254,8 @@ HRESULT AXPlatformNodeTextRangeProviderWin::ExpandToEnclosingUnitImpl(
     case TextUnit_Paragraph:
       SetStart(
           start()->CreatePreviousParagraphStartPosition(
-              AXBoundaryBehavior::StopAtLastAnchorBoundary));
-      SetEnd(start()->CreateNextParagraphStartPosition(
+              AXBoundaryBehavior::StopIfAlreadyAtBoundary)); // TOOD(schectman) ibid re:boundary behavior
+      SetEnd(end()->CreateNextParagraphStartPosition( // TODO(schectman) ibid re:start vs end
               AXBoundaryBehavior::StopAtLastAnchorBoundary));
       break;
     case TextUnit_Page: {

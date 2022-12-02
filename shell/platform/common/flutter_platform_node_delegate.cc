@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "flutter/shell/platform/common/accessibility_bridge.h"
 #include "flutter/third_party/accessibility/ax/ax_action_data.h"
 #include "flutter/third_party/accessibility/ax/ax_tree_manager_map.h"
 #include "flutter/third_party/accessibility/ax/platform/ax_platform_tree_manager.h"
@@ -136,14 +137,18 @@ ui::AXPlatformNode* FlutterPlatformNodeDelegate::GetPlatformNode() const {
 
 ui::AXPlatformNode* FlutterPlatformNodeDelegate::GetFromNodeID(int32_t node_id) {
   ui::AXTreeManager* tree_manager = ui::AXTreeManagerMap::GetInstance().GetManager(ax_node_->tree()->GetAXTreeID());
-  ui::AXPlatformTreeManager* platform_manager = static_cast<ui::AXPlatformTreeManager*>(tree_manager);
+  AccessibilityBridge* platform_manager = static_cast<AccessibilityBridge*>(tree_manager);
   return platform_manager->GetPlatformNodeFromTree(node_id);
 }
 
 ui::AXPlatformNode* FlutterPlatformNodeDelegate::GetFromTreeIDAndNodeID(const ui::AXTreeID& tree_id, int32_t node_id) {
   ui::AXTreeManager* tree_manager = ui::AXTreeManagerMap::GetInstance().GetManager(tree_id);
-  ui::AXPlatformTreeManager* platform_manager = static_cast<ui::AXPlatformTreeManager*>(tree_manager);
+  AccessibilityBridge* platform_manager = static_cast<AccessibilityBridge*>(tree_manager);
   return platform_manager->GetPlatformNodeFromTree(node_id);
+}
+
+const ui::AXTree::Selection FlutterPlatformNodeDelegate::GetUnignoredSelection() const {
+  return ax_node_->GetUnignoredSelection();
 }
 
 }  // namespace flutter

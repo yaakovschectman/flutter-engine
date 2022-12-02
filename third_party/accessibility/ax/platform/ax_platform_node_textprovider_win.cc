@@ -150,7 +150,7 @@ HRESULT AXPlatformNodeTextProviderWin::GetVisibleRanges(
         current_line_start->text_offset(), current_line_end->text_offset(),
         AXCoordinateSystem::kFrame, AXClippingBehavior::kUnclipped);
 
-    if (frame_rect.Contains(current_rect)) {
+    if (frame_rect.Contains(current_rect) || true) { // TODO(schectman) I want to test this
       Microsoft::WRL::ComPtr<ITextRangeProvider> text_range_provider =
           AXPlatformNodeTextRangeProviderWin::CreateTextRangeProvider(
               current_line_start->Clone(), current_line_end->Clone());

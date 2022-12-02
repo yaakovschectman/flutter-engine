@@ -120,6 +120,7 @@ class AX_EXPORT AXNode final {
   size_t GetUnignoredChildCount() const;
   AXNode* GetUnignoredChildAtIndex(size_t index) const;
   AXNode* GetUnignoredParent() const;
+  OwnerTree::Selection GetUnignoredSelection() const;
   size_t GetUnignoredIndexInParent() const;
   size_t GetIndexInParent() const;
   AXNode* GetFirstUnignoredChild() const;
