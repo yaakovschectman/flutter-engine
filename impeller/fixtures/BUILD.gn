@@ -8,12 +8,16 @@ import("//flutter/testing/testing.gni")
 impeller_shaders("shader_fixtures") {
   name = "fixtures"
   shaders = [
+    "array.frag",
+    "array.vert",
     "box_fade.frag",
     "box_fade.vert",
     "colors.vert",
     "colors.frag",
     "impeller.frag",
     "impeller.vert",
+    "inactive_uniforms.frag",
+    "inactive_uniforms.vert",
     "instanced_draw.frag",
     "instanced_draw.vert",
     "mipmaps.frag",
@@ -29,8 +33,16 @@ impeller_shaders("shader_fixtures") {
   }
 }
 
+scenec("scene_fixtures") {
+  geometry = [ "flutter_logo.glb" ]
+  type = "gltf"
+}
+
 impellerc("runtime_stages") {
-  shaders = [ "ink_sparkle.frag" ]
+  shaders = [
+    "ink_sparkle.frag",
+    "runtime_stage_example.frag",
+  ]
   sl_file_extension = "iplr"
   shader_target_flag = "--runtime-stage-metal"
   iplr = true
@@ -46,13 +58,18 @@ test_fixtures("file_fixtures") {
     "blue_noise.png",
     "boston.jpg",
     "embarcadero.jpg",
+    "flutter_logo.glb",
+    "flutter_logo_baked.png",
     "kalimba.jpg",
+    "multiple_stages.hlsl",
     "resources_limit.vert",
     "sample.comp",
     "sample.frag",
     "sample.tesc",
     "sample.tese",
     "sample.vert",
+    "sample_with_binding.vert",
+    "simple.vert.hlsl",
     "sa%m#ple.vert",
     "struct_def_bug.vert",
     "table_mountain_nx.png",
@@ -63,10 +80,18 @@ test_fixtures("file_fixtures") {
     "table_mountain_pz.png",
     "test_texture.frag",
     "types.h",
+    "wtf.otf",
   ]
+  if (host_os == "mac") {
+    fixtures += [ "/System/Library/Fonts/Apple Color Emoji.ttc" ]
+  }
   fixtures +=
-      filter_include(get_target_outputs(":runtime_stages"), [ "*.iplr" ])
-  deps = [ ":runtime_stages" ]
+      filter_include(get_target_outputs(":runtime_stages"), [ "*.iplr" ]) +
+      filter_include(get_target_outputs(":scene_fixtures"), [ "*.ipscene" ])
+  deps = [
+    ":runtime_stages",
+    ":scene_fixtures",
+  ]
 }
 
 group("fixtures") {
@@ -74,6 +99,7 @@ group("fixtures") {
 
   public_deps = [
     ":file_fixtures",
+    ":scene_fixtures",
     ":shader_fixtures",
   ]
 }

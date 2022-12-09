@@ -32,14 +32,23 @@ class DeviceBuffer : public Buffer,
 
   BufferView AsBufferView() const;
 
+  virtual std::shared_ptr<Texture> AsTexture(
+      Allocator& allocator,
+      const TextureDescriptor& descriptor,
+      uint16_t row_bytes) const;
+
   // |Buffer|
   std::shared_ptr<const DeviceBuffer> GetDeviceBuffer(
       Allocator& allocator) const;
+
+  const DeviceBufferDescriptor& GetDeviceBufferDescriptor() const;
 
  protected:
   const DeviceBufferDescriptor desc_;
 
   explicit DeviceBuffer(DeviceBufferDescriptor desc);
+
+  virtual uint8_t* OnGetContents() const = 0;
 
   virtual bool OnCopyHostBuffer(const uint8_t* source,
                                 Range source_range,

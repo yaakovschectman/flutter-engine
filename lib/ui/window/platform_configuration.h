@@ -484,7 +484,7 @@ class PlatformConfigurationNativeApi {
   static Dart_Handle ComputePlatformResolvedLocale(
       Dart_Handle supportedLocalesHandle);
 
-  static void SetIsolateDebugName(const std::string name);
+  static void SetIsolateDebugName(const std::string& name);
 
   static Dart_Handle SendPlatformMessage(const std::string& name,
                                          Dart_Handle callback,
@@ -515,9 +515,18 @@ class PlatformConfigurationNativeApi {
   ///
   static int RequestDartPerformanceMode(int mode);
 
+  //--------------------------------------------------------------------------
+  /// @brief      Returns the current performance mode of the Dart VM. Defaults
+  /// to `Dart_PerformanceMode_Default` if no prior requests to change the
+  /// performance mode have been made.
+  static Dart_PerformanceMode GetDartPerformanceMode();
+
   static int64_t GetRootIsolateToken();
 
   static void RegisterBackgroundIsolate(int64_t root_isolate_token);
+
+ private:
+  static Dart_PerformanceMode current_performace_mode_;
 };
 
 }  // namespace flutter

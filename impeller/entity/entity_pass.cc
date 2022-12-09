@@ -5,6 +5,7 @@
 #include "impeller/entity/entity_pass.h"
 
 #include <memory>
+#include <utility>
 #include <variant>
 
 #include "flutter/fml/logging.h"
@@ -12,9 +13,10 @@
 #include "flutter/fml/trace_event.h"
 #include "impeller/base/validation.h"
 #include "impeller/entity/contents/content_context.h"
-#include "impeller/entity/contents/filters/filter_contents.h"
+#include "impeller/entity/contents/filters/color_filter_contents.h"
 #include "impeller/entity/contents/filters/inputs/filter_input.h"
 #include "impeller/entity/contents/texture_contents.h"
+#include "impeller/entity/entity.h"
 #include "impeller/entity/inline_pass_context.h"
 #include "impeller/geometry/path_builder.h"
 #include "impeller/renderer/allocator.h"
@@ -38,7 +40,7 @@ void EntityPass::SetDelegate(std::unique_ptr<EntityPassDelegate> delegate) {
 }
 
 void EntityPass::AddEntity(Entity entity) {
-  if (entity.GetBlendMode() > Entity::BlendMode::kLastPipelineBlendMode) {
+  if (entity.GetBlendMode() > Entity::kLastPipelineBlendMode) {
     reads_from_pass_texture_ += 1;
   }
 
@@ -131,7 +133,7 @@ EntityPass* EntityPass::AddSubpass(std::unique_ptr<EntityPass> pass) {
   FML_DCHECK(pass->superpass_ == nullptr);
   pass->superpass_ = this;
 
-  if (pass->blend_mode_ > Entity::BlendMode::kLastPipelineBlendMode ||
+  if (pass->blend_mode_ > Entity::kLastPipelineBlendMode ||
       pass->backdrop_filter_proc_.has_value()) {
     reads_from_pass_texture_ += 1;
   }
@@ -182,7 +184,7 @@ static RenderTarget CreateRenderTarget(ContentContext& renderer,
 }
 
 bool EntityPass::Render(ContentContext& renderer,
-                        RenderTarget render_target) const {
+                        const RenderTarget& render_target) const {
   if (reads_from_pass_texture_ > 0) {
     auto offscreen_target =
         CreateRenderTarget(renderer, render_target.GetRenderTargetSize(), true);
@@ -204,7 +206,7 @@ bool EntityPass::Render(ContentContext& renderer,
 
       Entity entity;
       entity.SetContents(contents);
-      entity.SetBlendMode(Entity::BlendMode::kSourceOver);
+      entity.SetBlendMode(BlendMode::kSource);
 
       entity.Render(renderer, *render_pass);
     }
@@ -379,7 +381,7 @@ struct StencilLayer {
 bool EntityPass::OnRender(
     ContentContext& renderer,
     ISize root_pass_size,
-    RenderTarget render_target,
+    const RenderTarget& render_target,
     Point position,
     Point parent_position,
     uint32_t pass_depth,
@@ -419,7 +421,7 @@ bool EntityPass::OnRender(
 
       Entity msaa_backdrop_entity;
       msaa_backdrop_entity.SetContents(std::move(msaa_backdrop_contents));
-      msaa_backdrop_entity.SetBlendMode(Entity::BlendMode::kSource);
+      msaa_backdrop_entity.SetBlendMode(BlendMode::kSource);
       if (!msaa_backdrop_entity.Render(renderer, *result.pass)) {
         return false;
       }
@@ -505,8 +507,7 @@ bool EntityPass::OnRender(
     /// Setup advanced blends.
     ///
 
-    if (result.entity.GetBlendMode() >
-        Entity::BlendMode::kLastPipelineBlendMode) {
+    if (result.entity.GetBlendMode() > Entity::kLastPipelineBlendMode) {
       // End the active pass and flush the buffer before rendering "advanced"
       // blends. Advanced blends work by binding the current render target
       // texture as an input ("destination"), blending with a second texture
@@ -532,10 +533,10 @@ bool EntityPass::OnRender(
           FilterInput::Make(texture,
                             result.entity.GetTransformation().Invert())};
       auto contents =
-          FilterContents::MakeBlend(result.entity.GetBlendMode(), inputs);
+          ColorFilterContents::MakeBlend(result.entity.GetBlendMode(), inputs);
       contents->SetCoverageCrop(result.entity.GetCoverage());
       result.entity.SetContents(std::move(contents));
-      result.entity.SetBlendMode(Entity::BlendMode::kSourceOver);
+      result.entity.SetBlendMode(BlendMode::kSource);
     }
 
     //--------------------------------------------------------------------------
@@ -550,7 +551,8 @@ bool EntityPass::OnRender(
   return true;
 }
 
-void EntityPass::IterateAllEntities(std::function<bool(Entity&)> iterator) {
+void EntityPass::IterateAllEntities(
+    const std::function<bool(Entity&)>& iterator) {
   if (!iterator) {
     return;
   }
@@ -592,14 +594,14 @@ std::unique_ptr<EntityPass> EntityPass::Clone() const {
 }
 
 void EntityPass::SetTransformation(Matrix xformation) {
-  xformation_ = std::move(xformation);
+  xformation_ = xformation;
 }
 
 void EntityPass::SetStencilDepth(size_t stencil_depth) {
   stencil_depth_ = stencil_depth;
 }
 
-void EntityPass::SetBlendMode(Entity::BlendMode blend_mode) {
+void EntityPass::SetBlendMode(BlendMode blend_mode) {
   blend_mode_ = blend_mode;
   cover_whole_screen_ = Entity::BlendModeShouldCoverWholeScreen(blend_mode);
 }
@@ -610,7 +612,7 @@ void EntityPass::SetBackdropFilter(std::optional<BackdropFilterProc> proc) {
                       "have already been appended to another pass.";
   }
 
-  backdrop_filter_proc_ = proc;
+  backdrop_filter_proc_ = std::move(proc);
 }
 
 }  // namespace impeller

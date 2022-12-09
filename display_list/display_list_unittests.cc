@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "flutter/display_list/display_list.h"
@@ -591,7 +592,7 @@ TEST(DisplayList, DisplayListTransformResetHandling) {
 }
 
 TEST(DisplayList, SingleOpsMightSupportGroupOpacityWithOrWithoutBlendMode) {
-  auto run_tests = [](std::string name,
+  auto run_tests = [](const std::string& name,
                       void build(DisplayListBuilder & builder),
                       bool expect_for_op, bool expect_with_kSrc) {
     {
@@ -783,12 +784,12 @@ class SaveLayerOptionsExpector : public virtual Dispatcher,
                                  public IgnoreTransformDispatchHelper,
                                  public IgnoreDrawDispatchHelper {
  public:
-  explicit SaveLayerOptionsExpector(SaveLayerOptions expected) {
+  explicit SaveLayerOptionsExpector(const SaveLayerOptions& expected) {
     expected_.push_back(expected);
   }
 
   explicit SaveLayerOptionsExpector(std::vector<SaveLayerOptions> expected)
-      : expected_(expected) {}
+      : expected_(std::move(expected)) {}
 
   void saveLayer(const SkRect* bounds,
                  const SaveLayerOptions options,
@@ -1541,10 +1542,10 @@ TEST(DisplayList, FlatDrawPointsProducesBounds) {
   }
 }
 
-static void test_rtree(sk_sp<const DlRTree> rtree,
+static void test_rtree(const sk_sp<const DlRTree>& rtree,
                        const SkRect& query,
                        std::vector<SkRect> expected_rects,
-                       std::vector<int> expected_indices) {
+                       const std::vector<int>& expected_indices) {
   std::vector<int> indices;
   rtree->search(query, &indices);
   EXPECT_EQ(indices, expected_indices);
@@ -1646,6 +1647,26 @@ TEST(DisplayList, RTreeOfSaveLayerFilterScene) {
   test_rtree(rtree, {59, 59, 65, 65}, rects, {1});
 
   // Hitting both drawRect calls
+  test_rtree(rtree, {19, 19, 51, 51}, rects, {0, 1});
+}
+
+TEST(DisplayList, NestedDisplayListRTreesAreSparse) {
+  DisplayListBuilder nested_dl_builder;
+  nested_dl_builder.drawRect({10, 10, 20, 20});
+  nested_dl_builder.drawRect({50, 50, 60, 60});
+  auto nested_display_list = nested_dl_builder.Build();
+
+  DisplayListBuilder builder;
+  builder.drawDisplayList(nested_display_list);
+  auto display_list = builder.Build();
+
+  auto rtree = display_list->rtree();
+  std::vector<SkRect> rects = {
+      {10, 10, 20, 20},
+      {50, 50, 60, 60},
+  };
+
+  // Hitting both sub-dl drawRect calls
   test_rtree(rtree, {19, 19, 51, 51}, rects, {0, 1});
 }
 

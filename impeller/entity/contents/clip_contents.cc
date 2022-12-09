@@ -7,9 +7,7 @@
 #include "fml/logging.h"
 #include "impeller/entity/contents/clip_contents.h"
 #include "impeller/entity/contents/content_context.h"
-#include "impeller/entity/contents/solid_color_contents.h"
 #include "impeller/entity/entity.h"
-#include "impeller/geometry/path_builder.h"
 #include "impeller/renderer/formats.h"
 #include "impeller/renderer/render_pass.h"
 #include "impeller/renderer/vertex_buffer_builder.h"
@@ -24,8 +22,8 @@ ClipContents::ClipContents() = default;
 
 ClipContents::~ClipContents() = default;
 
-void ClipContents::SetPath(Path path) {
-  path_ = std::move(path);
+void ClipContents::SetGeometry(std::unique_ptr<Geometry> geometry) {
+  geometry_ = std::move(geometry);
 }
 
 void ClipContents::SetClipOperation(Entity::ClipOperation clip_op) {
@@ -52,8 +50,7 @@ Contents::StencilCoverage ClipContents::GetStencilCoverage(
       return {
           .type = StencilCoverage::Type::kAppend,
           .coverage = current_stencil_coverage->Intersection(
-              path_.GetTransformedBoundingBox(entity.GetTransformation())
-                  .value()),
+              geometry_->GetCoverage(entity.GetTransformation()).value()),
       };
   }
   FML_UNREACHABLE();
@@ -89,17 +86,17 @@ bool ClipContents::Render(const ContentContext& renderer,
     {
       cmd.label = "Difference Clip (Increment)";
 
-      cmd.primitive_type = PrimitiveType::kTriangleStrip;
       auto points = Rect(Size(pass.GetRenderTargetSize())).GetPoints();
       auto vertices =
           VertexBufferBuilder<VS::PerVertexData>{}
               .AddVertices({{points[0]}, {points[1]}, {points[2]}, {points[3]}})
               .CreateVertexBuffer(pass.GetTransientsBuffer());
-      cmd.BindVertices(std::move(vertices));
+      cmd.BindVertices(vertices);
 
       info.mvp = Matrix::MakeOrthographic(pass.GetRenderTargetSize());
       VS::BindVertInfo(cmd, pass.GetTransientsBuffer().EmplaceUniform(info));
 
+      options.primitive_type = PrimitiveType::kTriangleStrip;
       cmd.pipeline = renderer.GetClipPipeline(options);
       pass.AddCommand(cmd);
     }
@@ -107,7 +104,6 @@ bool ClipContents::Render(const ContentContext& renderer,
     {
       cmd.label = "Difference Clip (Punch)";
 
-      cmd.primitive_type = PrimitiveType::kTriangle;
       cmd.stencil_reference = entity.GetStencilDepth() + 1;
       options.stencil_compare = CompareFunction::kEqual;
       options.stencil_operation = StencilOperation::kDecrementClamp;
@@ -118,12 +114,14 @@ bool ClipContents::Render(const ContentContext& renderer,
     options.stencil_operation = StencilOperation::kIncrementClamp;
   }
 
+  auto geometry_result = geometry_->GetPositionBuffer(renderer, entity, pass);
+  options.primitive_type = geometry_result.type;
   cmd.pipeline = renderer.GetClipPipeline(options);
-  cmd.BindVertices(SolidColorContents::CreateSolidFillVertices(
-      path_, pass.GetTransientsBuffer()));
 
-  info.mvp = Matrix::MakeOrthographic(pass.GetRenderTargetSize()) *
-             entity.GetTransformation();
+  auto allocator = renderer.GetContext()->GetResourceAllocator();
+  cmd.BindVertices(geometry_result.vertex_buffer);
+
+  info.mvp = geometry_result.transform;
   VS::BindVertInfo(cmd, pass.GetTransientsBuffer().EmplaceUniform(info));
 
   pass.AddCommand(std::move(cmd));

@@ -36,11 +36,6 @@ class FilterContents : public Contents {
 
   enum class MorphType { kDilate, kErode };
 
-  static std::shared_ptr<FilterContents> MakeBlend(
-      Entity::BlendMode blend_mode,
-      FilterInput::Vector inputs,
-      std::optional<Color> foreground_color = std::nullopt);
-
   static std::shared_ptr<FilterContents> MakeDirectionalGaussianBlur(
       FilterInput::Ref input,
       Sigma sigma,
@@ -52,7 +47,7 @@ class FilterContents : public Contents {
       const Matrix& effect_transform = Matrix());
 
   static std::shared_ptr<FilterContents> MakeGaussianBlur(
-      FilterInput::Ref input,
+      const FilterInput::Ref& input,
       Sigma sigma_x,
       Sigma sigma_y,
       BlurStyle blur_style = BlurStyle::kNormal,
@@ -80,19 +75,19 @@ class FilterContents : public Contents {
       MorphType morph_type,
       const Matrix& effect_transform = Matrix());
 
-  static std::shared_ptr<FilterContents> MakeColorMatrix(
-      FilterInput::Ref input,
-      const ColorMatrix& color_matrix);
-
-  static std::shared_ptr<FilterContents> MakeLinearToSrgbFilter(
-      FilterInput::Ref input);
-
-  static std::shared_ptr<FilterContents> MakeSrgbToLinearFilter(
-      FilterInput::Ref input);
-
   static std::shared_ptr<FilterContents> MakeMatrixFilter(
       FilterInput::Ref input,
+      const Matrix& matrix,
+      const SamplerDescriptor& desc);
+
+  static std::shared_ptr<FilterContents> MakeLocalMatrixFilter(
+      FilterInput::Ref input,
       const Matrix& matrix);
+
+  static std::shared_ptr<FilterContents> MakeYUVToRGBFilter(
+      std::shared_ptr<Texture> y_texture,
+      std::shared_ptr<Texture> uv_texture,
+      YUVColorSpace yuv_color_space);
 
   FilterContents();
 

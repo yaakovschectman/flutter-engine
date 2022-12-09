@@ -1112,6 +1112,8 @@ class Paint {
   //
   // The binary format must match the deserialization code in paint.cc.
 
+  // C++ unit tests access this.
+  @pragma('vm:entry-point')
   final ByteData _data = ByteData(_kDataByteCount);
 
   static const int _kIsAntiAliasIndex = 0;
@@ -1147,6 +1149,8 @@ class Paint {
   static const int _kDataByteCount = 56;
 
   // Binary format must match the deserialization code in paint.cc.
+  // C++ unit tests access this.
+  @pragma('vm:entry-point')
   List<Object?>? _objects;
 
   List<Object?> _ensureObjectsInitialized() {
@@ -1403,6 +1407,14 @@ class Paint {
         value == null || !value.debugDisposed,
         'Attempted to set a disposed shader to $this',
       );
+      return true;
+    }());
+    assert(() {
+      if (value is FragmentShader) {
+        if (!value._validateSamplers()) {
+          throw Exception('Invalid FragmentShader ${value._debugName ?? ''}: missing sampler');
+        }
+      }
       return true;
     }());
     _ensureObjectsInitialized()[_kShaderIndex] = value;
@@ -2429,6 +2441,9 @@ class Path extends NativeFieldWrapperClass1 {
   /// Adds a quadratic bezier segment that curves from the current
   /// point to the given point (x2,y2), using the control point
   /// (x1,y1).
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_quadratic_to.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_quadratic_to_dark.png#gh-dark-mode-only)
   @FfiNative<Void Function(Pointer<Void>, Float, Float, Float, Float)>('Path::quadraticBezierTo', isLeaf: true)
   external void quadraticBezierTo(double x1, double y1, double x2, double y2);
 
@@ -2443,6 +2458,9 @@ class Path extends NativeFieldWrapperClass1 {
   /// Adds a cubic bezier segment that curves from the current point
   /// to the given point (x3,y3), using the control points (x1,y1) and
   /// (x2,y2).
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_cubic_to.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_cubic_to_dark.png#gh-dark-mode-only)
   @FfiNative<Void Function(Pointer<Void>, Float, Float, Float, Float, Float, Float)>('Path::cubicTo', isLeaf: true)
   external void cubicTo(double x1, double y1, double x2, double y2, double x3, double y3);
 
@@ -2458,6 +2476,9 @@ class Path extends NativeFieldWrapperClass1 {
   /// weight w. If the weight is greater than 1, then the curve is a
   /// hyperbola; if the weight equals 1, it's a parabola; and if it is
   /// less than 1, it is an ellipse.
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_conic_to.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_conic_to_dark.png#gh-dark-mode-only)
   @FfiNative<Void Function(Pointer<Void>, Float, Float, Float, Float, Float)>('Path::conicTo', isLeaf: true)
   external void conicTo(double x1, double y1, double x2, double y2, double w);
 
@@ -2588,9 +2609,11 @@ class Path extends NativeFieldWrapperClass1 {
   /// rectangle and with positive angles going clockwise around the
   /// oval.
   ///
-  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_add_arc.png)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_add_arc.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_add_arc_dark.png#gh-dark-mode-only)
   ///
-  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_add_arc_ccw.png)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_add_arc_ccw.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/path_add_arc_ccw_dark.png#gh-dark-mode-only)
   void addArc(Rect oval, double startAngle, double sweepAngle) {
     assert(_rectIsValid(oval));
     _addArc(oval.left, oval.top, oval.right, oval.bottom, startAngle, sweepAngle);
@@ -2978,7 +3001,7 @@ class PathMetric {
   }
 
   @override
-  String toString() => '$runtimeType{length: $length, isClosed: $isClosed, contourIndex:$contourIndex}';
+  String toString() => 'PathMetric(length: $length, isClosed: $isClosed, contourIndex: $contourIndex)';
 }
 
 class _PathMeasure extends NativeFieldWrapperClass1 {
@@ -4080,13 +4103,25 @@ class Gradient extends Shader {
 
 /// A shader (as used by [Paint.shader]) that tiles an image.
 class ImageShader extends Shader {
-  /// Creates an image-tiling shader. The first argument specifies the image to
-  /// tile. The second and third arguments specify the [TileMode] for the x
-  /// direction and y direction respectively. The fourth argument gives the
-  /// matrix to apply to the effect. All the arguments are required and must not
-  /// be null, except for [filterQuality]. If [filterQuality] is not specified
-  /// at construction time it will be deduced from the environment where it is used,
-  /// such as from [Paint.filterQuality].
+  /// Creates an image-tiling shader.
+  ///
+  /// The first argument specifies the image to render. The
+  /// [decodeImageFromList] function can be used to decode an image from bytes
+  /// into the form expected here. (In production code, starting from
+  /// [instantiateImageCodec] may be preferable.)
+  ///
+  /// The second and third arguments specify the [TileMode] for the x direction
+  /// and y direction respectively. [TileMode.repeated] can be used for tiling
+  /// images.
+  ///
+  /// The fourth argument gives the matrix to apply to the effect. The
+  /// expression `Matrix4.identity().storage` creates a [Float64List]
+  /// prepopulated with the identity matrix.
+  ///
+  /// All the arguments are required and must not be null, except for
+  /// [filterQuality]. If [filterQuality] is not specified at construction time
+  /// it will be deduced from the environment where it is used, such as from
+  /// [Paint.filterQuality].
   @pragma('vm:entry-point')
   ImageShader(Image image, TileMode tmx, TileMode tmy, Float64List matrix4, {
     FilterQuality? filterQuality,
@@ -4136,9 +4171,15 @@ class FragmentProgram extends NativeFieldWrapperClass1 {
     _constructor();
     final String result = _initFromAsset(assetKey);
     if (result.isNotEmpty) {
-      throw result; // ignore: only_throw_errors
+      throw Exception(result);
     }
+    assert(() {
+      _debugName = assetKey;
+      return true;
+    }());
   }
+
+  String? _debugName;
 
   // TODO(zra): Document custom shaders on the website and add a link to it
   // here. https://github.com/flutter/flutter/issues/107929.
@@ -4173,7 +4214,7 @@ class FragmentProgram extends NativeFieldWrapperClass1 {
       <String, WeakReference<FragmentProgram>>{};
 
   static void _reinitializeShader(String assetKey) {
-    // If a shader for the assent isn't already registered, then there's no
+    // If a shader for the asset isn't already registered, then there's no
     // need to reinitialize it. The new shader will be loaded and initialized
     // the next time the program access it.
     final WeakReference<FragmentProgram>? programRef = _shaderRegistry == null
@@ -4207,88 +4248,7 @@ class FragmentProgram extends NativeFieldWrapperClass1 {
   external String _initFromAsset(String assetKey);
 
   /// Returns a fresh instance of [FragmentShader].
-  FragmentShader fragmentShader() => FragmentShader._(this);
-
-  /// Constructs a [Shader] object suitable for use by [Paint.shader] with
-  /// the given uniforms.
-  ///
-  /// This method is suitable to be called synchronously within a widget's
-  /// `build` method or from [CustomPainter.paint].
-  ///
-  /// `floatUniforms` can be passed optionally to initialize the shader's
-  /// uniforms. If they are not set they will each default to 0.
-  ///
-  /// When initializing `floatUniforms`, the length of float uniforms must match
-  /// the total number of floats defined as uniforms in the shader, or an
-  /// [ArgumentError] will be thrown. Details are below.
-  ///
-  /// Consider the following snippit of GLSL code.
-  ///
-  /// ```glsl
-  /// layout (location = 0) uniform float a;
-  /// layout (location = 1) uniform vec2 b;
-  /// layout (location = 2) uniform vec3 c;
-  /// layout (location = 3) uniform mat2x2 d;
-  /// ```
-  ///
-  /// When compiled to SPIR-V and provided to the constructor, `floatUniforms`
-  /// must have a length of 10. One per float-component of each uniform.
-  ///
-  /// `program.shader(floatUniforms: Float32List.fromList([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));`
-  ///
-  /// The uniforms will be set as follows:
-  ///
-  /// a: 1
-  /// b: [2, 3]
-  /// c: [4, 5, 6]
-  /// d: [7, 8, 9, 10] // 2x2 matrix in column-major order
-  ///
-  /// `imageSamplers` must also be sized correctly, matching the number of UniformConstant
-  /// variables of type SampledImage specified in the SPIR-V code.
-  ///
-  /// Consider the following snippit of GLSL code.
-  ///
-  /// ```glsl
-  /// layout (location = 0) uniform sampler2D a;
-  /// layout (location = 1) uniform sampler2D b;
-  /// ```
-  ///
-  /// After being compiled to SPIR-V  `imageSamplers` must have a length
-  /// of 2.
-  ///
-  /// Once a [Shader] is built, uniform values cannot be changed. Instead,
-  /// [shader] must be called again with new uniform values.
-  Shader shader({
-    Float32List? floatUniforms,
-    List<ImageShader>? samplerUniforms,
-  }) {
-    floatUniforms ??= Float32List(_uniformFloatCount);
-    if (floatUniforms.length != _uniformFloatCount) {
-      throw ArgumentError(
-        'floatUniforms size: ${floatUniforms.length} must match given shader '
-        'uniform count: $_uniformFloatCount.',
-      );
-    }
-    if (_samplerCount > 0 &&
-        (samplerUniforms == null || samplerUniforms.length != _samplerCount)) {
-      throw ArgumentError('samplerUniforms must have length $_samplerCount');
-    }
-    if (samplerUniforms == null) {
-      samplerUniforms = <ImageShader>[];
-    } else {
-      samplerUniforms = <ImageShader>[...samplerUniforms];
-    }
-    final _FragmentShader shader = _FragmentShader(
-      this,
-      Float32List.fromList(floatUniforms),
-      samplerUniforms,
-    );
-    _shader(shader, floatUniforms, samplerUniforms);
-    return shader;
-  }
-
-  @FfiNative<Handle Function(Pointer<Void>, Handle, Handle, Handle)>('FragmentProgram::shader')
-  external Handle _shader(_FragmentShader shader, Float32List floatUniforms, List<ImageShader> samplerUniforms);
+  FragmentShader fragmentShader() => FragmentShader._(this, debugName: _debugName);
 }
 
 /// A [Shader] generated from a [FragmentProgram].
@@ -4297,7 +4257,7 @@ class FragmentProgram extends NativeFieldWrapperClass1 {
 /// [FragmentProgram.fragmentShader] method. The float uniforms list is
 /// initialized to the size expected by the shader and is zero-filled. Uniforms
 /// of float type can then be set by calling [setFloat]. Sampler uniforms are
-/// set by calling [setSampler].
+/// set by calling [setImageSampler].
 ///
 /// A [FragmentShader] can be re-used, and this is an efficient way to avoid
 /// allocating and re-initializing the uniform buffer and samplers. However,
@@ -4305,7 +4265,7 @@ class FragmentProgram extends NativeFieldWrapperClass1 {
 /// are required to exist simultaneously, they must be obtained from two
 /// different calls to [FragmentProgram.fragmentShader].
 class FragmentShader extends Shader {
-  FragmentShader._(FragmentProgram program) : super._() {
+  FragmentShader._(FragmentProgram program, { String? debugName }) : _debugName = debugName, super._() {
     _floats = _constructor(
       program,
       program._uniformFloatCount,
@@ -4313,23 +4273,69 @@ class FragmentShader extends Shader {
     );
   }
 
-  static final Float32List _kEmptyFloat32List = Float32List(0);
+  final String? _debugName;
 
-  late Float32List _floats;
+  static final Float32List _kEmptyFloat32List = Float32List(0);
+  Float32List _floats = _kEmptyFloat32List;
 
   /// Sets the float uniform at [index] to [value].
+  ///
+  /// All uniforms defined in a fragment shader that are not samplers must be
+  /// set through this method. This includes floats and vec2, vec3, and vec4.
+  /// The correct index for each uniform is determined by the order of the
+  /// uniforms as defined in the fragment program, ignoring any samplers. For
+  /// data types that are composed of multiple floats such as a vec4, more than
+  /// one call to [setFloat] is required.
+  ///
+  /// For example, given the following uniforms in a fragment program:
+  ///
+  /// ```glsl
+  /// uniform float uScale;
+  /// uniform sampler2D uTexture;
+  /// uniform vec2 uMagnitude;
+  /// uniform vec4 uColor;
+  /// ```
+  ///
+  /// Then the corresponding Dart code to correctly initialize these uniforms
+  /// is:
+  ///
+  /// ```dart
+  /// void updateShader(ui.FragmentShader shader, Color color, ui.Image image) {
+  ///   shader.setFloat(0, 23);  // uScale
+  ///   shader.setFloat(1, 114); // uMagnitude x
+  ///   shader.setFloat(2, 83);  // uMagnitude y
+  ///
+  ///   // Convert color to premultiplied opacity.
+  ///   shader.setFloat(3, color.red / 255 * color.opacity);   // uColor r
+  ///   shader.setFloat(4, color.green / 255 * color.opacity); // uColor g
+  ///   shader.setFloat(5, color.blue / 255 * color.opacity);  // uColor b
+  ///   shader.setFloat(6, color.opacity);                     // uColor a
+  ///
+  ///   // initialize sampler uniform.
+  ///   shader.setImageSampler(0, image);
+  /// }
+  /// ```
+  ///
+  /// Note how the indexes used does not count the `sampler2D` uniform. This
+  /// uniform will be set separately with [setImageSampler], with the index starting
+  /// over at 0.
+  ///
+  /// Any float uniforms that are left uninitialized will default to `0`.
   void setFloat(int index, double value) {
     assert(!debugDisposed, 'Tried to accesss uniforms on a disposed Shader: $this');
     _floats[index] = value;
   }
 
-  /// Sets the sampler uniform at [index] to [sampler].
+  /// Sets the sampler uniform at [index] to [image].
+  ///
+  /// The index provided to setImageSampler is the index of the sampler uniform defined
+  /// in the fragment program, excluding all non-sampler uniforms.
   ///
   /// All the sampler uniforms that a shader expects must be provided or the
   /// results will be undefined.
-  void setSampler(int index, ImageShader sampler) {
+  void setImageSampler(int index, Image image) {
     assert(!debugDisposed, 'Tried to access uniforms on a disposed Shader: $this');
-    _setSampler(index, sampler);
+    _setImageSampler(index, image._image);
   }
 
   /// Releases the native resources held by the [FragmentShader].
@@ -4347,45 +4353,14 @@ class FragmentShader extends Shader {
   @FfiNative<Handle Function(Handle, Handle, Handle, Handle)>('ReusableFragmentShader::Create')
   external Float32List _constructor(FragmentProgram program, int floatUniforms, int samplerUniforms);
 
-  @FfiNative<Void Function(Pointer<Void>, Handle, Handle)>('ReusableFragmentShader::SetSampler')
-  external void _setSampler(int index, ImageShader sampler);
+  @FfiNative<Void Function(Pointer<Void>, Handle, Handle)>('ReusableFragmentShader::SetImageSampler')
+  external void _setImageSampler(int index, _Image sampler);
+
+  @FfiNative<Bool Function(Pointer<Void>)>('ReusableFragmentShader::ValidateSamplers')
+  external bool _validateSamplers();
 
   @FfiNative<Void Function(Pointer<Void>)>('ReusableFragmentShader::Dispose')
   external void _dispose();
-}
-
-@pragma('vm:entry-point')
-class _FragmentShader extends Shader {
-  /// This class is created by the engine and should not be instantiated
-  /// or extended directly.
-  ///
-  /// To create a [_FragmentShader], use a [FragmentProgram].
-  _FragmentShader(
-    this._builder,
-    this._floatUniforms,
-    this._samplerUniforms,
-  ) : super._();
-
-  final FragmentProgram _builder;
-  final Float32List _floatUniforms;
-  final List<ImageShader> _samplerUniforms;
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) {
-      return true;
-    }
-    if (other.runtimeType != runtimeType) {
-      return false;
-    }
-    return other is _FragmentShader
-        && other._builder == _builder
-        && _listEquals<double>(other._floatUniforms, _floatUniforms)
-        && _listEquals<ImageShader>(other._samplerUniforms, _samplerUniforms);
-  }
-
-  @override
-  int get hashCode => Object.hash(_builder, Object.hashAll(_floatUniforms), Object.hashAll(_samplerUniforms));
 }
 
 /// Defines how a list of points is interpreted when drawing a set of triangles.
@@ -4399,46 +4374,119 @@ enum VertexMode {
   /// Draw each sliding window of three points as the vertices of a triangle.
   triangleStrip,
 
-  /// Draw the first point and each sliding window of two points as the vertices of a triangle.
+  /// Draw the first point and each sliding window of two points as the vertices
+  /// of a triangle.
+  ///
+  /// This mode is not natively supported by most backends, and is instead
+  /// implemented by unrolling the points into the equivalent
+  /// [VertexMode.triangles], which is generally more efficient.
   triangleFan,
 }
 
 /// A set of vertex data used by [Canvas.drawVertices].
+///
+/// Vertex data consists of a series of points in the canvas coordinate space.
+/// Based on the [VertexMode], these points are interpreted either as
+/// independent triangles ([VertexMode.triangles]), as a sliding window of
+/// points forming a chain of triangles each sharing one side with the next
+/// ([VertexMode.triangleStrip]), or as a fan of triangles with a single shared
+/// point ([VertexMode.triangleFan]).
+///
+/// Each point can be associated with a color. Each triangle is painted as a
+/// gradient that blends between the three colors at the three points of that
+/// triangle. If no colors are specified, transparent black is assumed for all
+/// the points.
+///
+/// These colors are then blended with the [Paint] specified in the call to
+/// [Canvas.drawVertices]. This paint is either a solid color ([Paint.color]),
+/// or a bitmap, specified using a shader ([Paint.shader]), typically either a
+/// gradient ([Gradient]) or image ([ImageFilter]). The bitmap uses the same
+/// coordinate space as the canvas (in the case of an [ImageFilter], this is
+/// notably different than the coordinate space of the source image; the source
+/// image is tiled according to the filter's configuration, and the image that
+/// is sampled when painting the triangles is the infinite one after all the
+/// repeating is applied.)
+///
+/// Each point in the [Vertices] is associated with a specific point on this
+/// image. Each triangle is painted by sampling points from this image by
+/// interpolating between the three points of the image corresponding to the
+/// three points of the triangle.
+///
+/// The [Vertices.new] constructor configures all this using lists of [Offset]
+/// and [Color] objects. The [Vertices.raw] constructor instead uses
+/// [Float32List], [Int32List], and [Uint16List] objects, which more closely
+/// corresponds to the data format used internally and therefore reduces some of
+/// the conversion overhead. The raw constructor is useful if the data is coming
+/// from another source (e.g. a file) and can therefore be parsed directly into
+/// the underlying representation.
 class Vertices extends NativeFieldWrapperClass1 {
   /// Creates a set of vertex data for use with [Canvas.drawVertices].
   ///
-  /// The [mode] and [positions] parameters must not be null.
-  /// The [positions] parameter is a list of triangular mesh vertices(xy).
+  /// The `mode` parameter describes how the points should be interpreted: as
+  /// independent triangles ([VertexMode.triangles]), as a sliding window of
+  /// points forming a chain of triangles each sharing one side with the next
+  /// ([VertexMode.triangleStrip]), or as a fan of triangles with a single
+  /// shared point ([VertexMode.triangleFan]).
   ///
-  /// If the [textureCoordinates] or [colors] parameters are provided, they must
-  /// be the same length as [positions].
+  /// The `positions` parameter provides the points in the canvas space that
+  /// will be use to draw the triangles.
   ///
-  /// The [textureCoordinates] parameter is used to cutout
-  /// the image set in the image shader.
-  /// The cut part is applied to the triangular mesh.
-  /// Note that the [textureCoordinates] are the coordinates on the image.
+  /// The `colors` parameter, if specified, provides the color for each point in
+  /// `positions`. Each triangle is painted as a gradient that blends between
+  /// the three colors at the three points of that triangle. (These colors are
+  /// then blended with the [Paint] specified in the call to
+  /// [Canvas.drawVertices].)
   ///
-  /// If the [indices] parameter is provided, all values in the list must be
-  /// valid index values for [positions].
-  /// e.g. The [indices] parameter for a simple triangle is [0,1,2].
+  /// The `textureCoordinates` parameter, if specified, provides the points in
+  /// the [Paint] image to sample for the corresponding points in `positions`.
+  ///
+  /// If the `colors` or `textureCoordinates` parameters are specified, they must
+  /// be the same length as `positions`.
+  ///
+  /// The `indices` parameter specifies the order in which the points should be
+  /// painted. If it is omitted (or present but empty), the points are processed
+  /// in the order they are given in `positions`, as if the `indices` was a list
+  /// from 0 to n-1, where _n_ is the number of entries in `positions`. The
+  /// `indices` parameter, if present and non-empty, must have at least three
+  /// entries, but may be of any length beyond this. Indicies may refer to
+  /// offsets in the positions array multiple times, or may skip positions
+  /// entirely.
+  ///
+  /// If the `indices` parameter is specified, all values in the list must be
+  /// valid index values for `positions`.
+  ///
+  /// The `mode` and `positions` parameters must not be null.
+  ///
+  /// This constructor converts its parameters into [dart:typed_data] lists
+  /// (e.g. using [Float32List]s for the coordinates) before sending them to the
+  /// Flutter engine. If the data provided to this constructor is not already in
+  /// [List] form, consider using the [Vertices.raw] constructor instead to
+  /// avoid converting the data twice.
   Vertices(
     VertexMode mode,
     List<Offset> positions, {
-    List<Offset>? textureCoordinates,
     List<Color>? colors,
+    List<Offset>? textureCoordinates,
     List<int>? indices,
   }) : assert(mode != null),
        assert(positions != null) {
-    if (textureCoordinates != null && textureCoordinates.length != positions.length) {
-      throw ArgumentError('"positions" and "textureCoordinates" lengths must match.');
-    }
     if (colors != null && colors.length != positions.length) {
       throw ArgumentError('"positions" and "colors" lengths must match.');
     }
-    if (indices != null && indices.any((int i) => i < 0 || i >= positions.length)) {
-      throw ArgumentError('"indices" values must be valid indices in the positions list.');
+    if (textureCoordinates != null && textureCoordinates.length != positions.length) {
+      throw ArgumentError('"positions" and "textureCoordinates" lengths must match.');
     }
-
+    if (indices != null) {
+      for (int index = 0; index < indices.length; index += 1) {
+        if (indices[index] >= positions.length) {
+          throw ArgumentError(
+            '"indices" values must be valid indices in the positions list '
+            '(i.e. numbers in the range 0..${positions.length - 1}), '
+            'but indices[$index] is ${indices[index]}, which is too big.',
+          );
+        }
+      }
+    }
     final Float32List encodedPositions = _encodePointList(positions);
     final Float32List? encodedTextureCoordinates = (textureCoordinates != null)
       ? _encodePointList(textureCoordinates)
@@ -4455,51 +4503,78 @@ class Vertices extends NativeFieldWrapperClass1 {
     }
   }
 
-  /// Creates a set of vertex data for use with [Canvas.drawVertices], directly
-  /// using the encoding methods of [Vertices.new].
-  /// Note that this constructor uses raw typed data lists,
-  /// so it runs faster than the [Vertices()] constructor
-  /// because it doesn't require any conversion from Dart lists.
+  /// Creates a set of vertex data for use with [Canvas.drawVertices], using the
+  /// encoding expected by the Flutter engine.
   ///
-  /// The [mode] parameter must not be null.
+  /// The `mode` parameter describes how the points should be interpreted: as
+  /// independent triangles ([VertexMode.triangles]), as a sliding window of
+  /// points forming a chain of triangles each sharing one side with the next
+  /// ([VertexMode.triangleStrip]), or as a fan of triangles with a single
+  /// shared point ([VertexMode.triangleFan]).
   ///
-  /// The [positions] parameter is a list of triangular mesh vertices and
-  /// is interpreted as a list of repeated pairs of x,y coordinates.
-  /// It must not be null.
+  /// The `positions` parameter provides the points in the canvas space that
+  /// will be use to draw the triangles. Each point is represented as two
+  /// numbers in the list, the first giving the x coordinate and the second
+  /// giving the y coordinate. (As a result, the list must have an even number
+  /// of entries.)
   ///
-  /// The [textureCoordinates] list is interpreted as a list of repeated pairs
-  /// of x,y coordinates, and must be the same length of [positions] if it
-  /// is not null.
-  /// The [textureCoordinates] parameter is used to cutout
-  /// the image set in the image shader.
-  /// The cut part is applied to the triangular mesh.
-  /// Note that the [textureCoordinates] are the coordinates on the image.
+  /// The `colors` parameter, if specified, provides the color for each point in
+  /// `positions`. Each color is represented as ARGB with 8 bit color channels
+  /// (like [Color.value]'s internal representation), and the list, if
+  /// specified, must therefore be half the length of `positions`. Each triangle
+  /// is painted as a gradient that blends between the three colors at the three
+  /// points of that triangle. (These colors are then blended with the [Paint]
+  /// specified in the call to [Canvas.drawVertices].)
   ///
-  /// The [colors] list is interpreted as a list of ARGB encoded colors, similar
-  /// to [Color.value]. It must be half length of [positions] if it is not
-  /// null.
+  /// The `textureCoordinates` parameter, if specified, provides the points in
+  /// the [Paint] image to sample for the corresponding points in `positions`.
+  /// Each point is represented as two numbers in the list, the first giving the
+  /// x coordinate and the second giving the y coordinate. This list, if
+  /// specified, must be the same length as `positions`.
   ///
-  /// If the [indices] list is provided, all values in the list must be
-  /// valid index values for [positions].
-  /// e.g. The [indices] parameter for a simple triangle is [0,1,2].
+  /// The `indices` parameter specifies the order in which the points should be
+  /// painted. If it is omitted (or present but empty), the points are processed
+  /// in the order they are given in `positions`, as if the `indices` was a list
+  /// from 0 to n-2, where _n_ is the number of pairs in `positions` (i.e. half
+  /// the length of `positions`). The `indices` parameter, if present and
+  /// non-empty, must have at least three entries, but may be of any length
+  /// beyond this. Indicies may refer to offsets in the positions array multiple
+  /// times, or may skip positions entirely.
+  ///
+  /// If the `indices` parameter is specified, all values in the list must be
+  /// valid index values for pairs in `positions`. For example, if there are 12
+  /// numbers in `positions` (representing 6 coordinates), the `indicies` must
+  /// be numbers in the range 0..5 inclusive.
+  ///
+  /// The `mode` and `positions` parameters must not be null.
   Vertices.raw(
     VertexMode mode,
     Float32List positions, {
-    Float32List? textureCoordinates,
     Int32List? colors,
+    Float32List? textureCoordinates,
     Uint16List? indices,
   }) : assert(mode != null),
        assert(positions != null) {
-    if (textureCoordinates != null && textureCoordinates.length != positions.length) {
-      throw ArgumentError('"positions" and "textureCoordinates" lengths must match.');
+    if (positions.length % 2 != 0) {
+      throw ArgumentError('"positions" must have an even number of entries (each coordinate is an x,y pair).');
     }
     if (colors != null && colors.length * 2 != positions.length) {
       throw ArgumentError('"positions" and "colors" lengths must match.');
     }
-    if (indices != null && indices.any((int i) => i < 0 || i >= positions.length)) {
-      throw ArgumentError('"indices" values must be valid indices in the positions list.');
+    if (textureCoordinates != null && textureCoordinates.length != positions.length) {
+      throw ArgumentError('"positions" and "textureCoordinates" lengths must match.');
     }
-
+    if (indices != null) {
+      for (int index = 0; index < indices.length; index += 1) {
+        if (indices[index] * 2 >= positions.length) {
+          throw ArgumentError(
+            '"indices" values must be valid indices in the positions list '
+            '(i.e. numbers in the range 0..${positions.length ~/ 2 - 1}), '
+            'but indices[$index] is ${indices[index]}, which is too big.',
+          );
+        }
+      }
+    }
     if (!_init(this, mode.index, positions, textureCoordinates, colors, indices)) {
       throw ArgumentError('Invalid configuration for vertices.');
     }
@@ -4530,7 +4605,7 @@ class Vertices extends NativeFieldWrapperClass1 {
   external void _dispose();
 
   bool _disposed = false;
-  /// Whether this reference to the underlying picture is [dispose]d.
+  /// Whether this reference to the underlying vertex data is [dispose]d.
   ///
   /// This only returns a valid value if asserts are enabled, and must not be
   /// used otherwise.
@@ -4540,13 +4615,13 @@ class Vertices extends NativeFieldWrapperClass1 {
       disposed = _disposed;
       return true;
     }());
-    return disposed ?? (throw StateError('$runtimeType.debugDisposed is only available when asserts are enabled.'));
+    return disposed ?? (throw StateError('Vertices.debugDisposed is only available when asserts are enabled.'));
   }
 }
 
 /// Defines how a list of points is interpreted when drawing a set of points.
 ///
-/// Used by [Canvas.drawPoints].
+/// Used by [Canvas.drawPoints] and [Canvas.drawRawPoints].
 // These enum values must be kept in sync with SkCanvas::PointMode.
 enum PointMode {
   /// Draw each point separately.
@@ -4568,7 +4643,7 @@ enum PointMode {
   /// [Paint.style]).
   lines,
 
-  /// Draw the entire sequence of point as one line.
+  /// Draw the entire sequence of points as one line.
   ///
   /// The lines are stroked as described by the [Paint] (ignoring
   /// [Paint.style]).
@@ -4863,6 +4938,8 @@ class Canvas extends NativeFieldWrapperClass1 {
   /// Reduces the clip region to the intersection of the current clip and the
   /// given rectangle.
   ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/clip_rect.png)
+  ///
   /// If [doAntiAlias] is true, then the clip will be anti-aliased.
   ///
   /// If multiple draw commands intersect with the clip boundary, this can result
@@ -4884,6 +4961,8 @@ class Canvas extends NativeFieldWrapperClass1 {
   /// Reduces the clip region to the intersection of the current clip and the
   /// given rounded rectangle.
   ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/clip_rrect.png)
+  ///
   /// If [doAntiAlias] is true, then the clip will be anti-aliased.
   ///
   /// If multiple draw commands intersect with the clip boundary, this can result
@@ -4900,6 +4979,8 @@ class Canvas extends NativeFieldWrapperClass1 {
 
   /// Reduces the clip region to the intersection of the current clip and the
   /// given [Path].
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/clip_path.png)
   ///
   /// If [doAntiAlias] is true, then the clip will be anti-aliased.
   ///
@@ -5015,6 +5096,9 @@ class Canvas extends NativeFieldWrapperClass1 {
   /// stroked, the value of the [Paint.style] is ignored for this call.
   ///
   /// The `p1` and `p2` arguments are interpreted as offsets from the origin.
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_line.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_line_dark.png#gh-dark-mode-only)
   void drawLine(Offset p1, Offset p2, Paint paint) {
     assert(_offsetIsValid(p1));
     assert(_offsetIsValid(p2));
@@ -5039,6 +5123,9 @@ class Canvas extends NativeFieldWrapperClass1 {
 
   /// Draws a rectangle with the given [Paint]. Whether the rectangle is filled
   /// or stroked (or both) is controlled by [Paint.style].
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_rect.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_rect_dark.png#gh-dark-mode-only)
   void drawRect(Rect rect, Paint paint) {
     assert(_rectIsValid(rect));
     assert(paint != null);
@@ -5050,6 +5137,9 @@ class Canvas extends NativeFieldWrapperClass1 {
 
   /// Draws a rounded rectangle with the given [Paint]. Whether the rectangle is
   /// filled or stroked (or both) is controlled by [Paint.style].
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_rrect.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_rrect_dark.png#gh-dark-mode-only)
   void drawRRect(RRect rrect, Paint paint) {
     assert(_rrectIsValid(rrect));
     assert(paint != null);
@@ -5077,6 +5167,9 @@ class Canvas extends NativeFieldWrapperClass1 {
   /// Draws an axis-aligned oval that fills the given axis-aligned rectangle
   /// with the given [Paint]. Whether the oval is filled or stroked (or both) is
   /// controlled by [Paint.style].
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_oval.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_oval_dark.png#gh-dark-mode-only)
   void drawOval(Rect rect, Paint paint) {
     assert(_rectIsValid(rect));
     assert(paint != null);
@@ -5090,6 +5183,9 @@ class Canvas extends NativeFieldWrapperClass1 {
   /// that has the radius given by the second argument, with the [Paint] given in
   /// the third argument. Whether the circle is filled or stroked (or both) is
   /// controlled by [Paint.style].
+  ///
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_circle.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_circle_dark.png#gh-dark-mode-only)
   void drawCircle(Offset c, double radius, Paint paint) {
     assert(_offsetIsValid(c));
     assert(paint != null);
@@ -5109,7 +5205,8 @@ class Canvas extends NativeFieldWrapperClass1 {
   /// closed back to the center, forming a circle sector. Otherwise, the arc is
   /// not closed, forming a circle segment.
   ///
-  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_draw_arc.png)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_draw_arc.png#gh-light-mode-only)
+  /// ![](https://flutter.github.io/assets-for-api-docs/assets/dart-ui/canvas_draw_arc_dark.png#gh-dark-mode-only)
   ///
   /// This method is optimized for drawing arcs and should be faster than [Path.arcTo].
   void drawArc(Rect rect, double startAngle, double sweepAngle, bool useCenter, Paint paint) {
@@ -5301,6 +5398,9 @@ class Canvas extends NativeFieldWrapperClass1 {
   ///
   /// The `points` argument is interpreted as offsets from the origin.
   ///
+  /// The `paint` is used for each point ([PointMode.points]) or line
+  /// ([PointMode.lines] or [PointMode.polygon]), ignoring [Paint.style].
+  ///
   /// See also:
   ///
   ///  * [drawRawPoints], which takes `points` as a [Float32List] rather than a
@@ -5316,6 +5416,9 @@ class Canvas extends NativeFieldWrapperClass1 {
   ///
   /// The `points` argument is interpreted as a list of pairs of floating point
   /// numbers, where each pair represents an x and y offset from the origin.
+  ///
+  /// The `paint` is used for each point ([PointMode.points]) or line
+  /// ([PointMode.lines] or [PointMode.polygon]), ignoring [Paint.style].
   ///
   /// See also:
   ///
@@ -5334,18 +5437,26 @@ class Canvas extends NativeFieldWrapperClass1 {
   @FfiNative<Void Function(Pointer<Void>, Handle, Handle, Int32, Handle)>('Canvas::drawPoints')
   external void _drawPoints(List<Object?>? paintObjects, ByteData paintData, int pointMode, Float32List points);
 
-  /// Draws the set of [Vertices] onto the canvas.
+  /// Draws a set of [Vertices] onto the canvas as one or more triangles.
   ///
-  /// The [blendMode] parameter is used to control how the colors in
-  /// the [vertices] are combined with the colors in the [paint].
-  /// If there are no colors specified in [vertices] then the [blendMode] has
-  /// no effect. If there are colors in the [vertices],
-  /// then the color taken from the [Shader] or [Color] in the [paint] is
-  /// blended with the colors specified in the [vertices] using
-  /// the [blendMode] parameter.
-  /// For purposes of this blending,
-  /// the colors from the [paint] are considered the source and the colors from
-  /// the [vertices] are considered the destination.
+  /// The [Paint.color] property specifies the default color to use for the
+  /// triangles.
+  ///
+  /// The [Paint.shader] property, if set, overrides the color entirely,
+  /// replacing it with the colors from the specified [ImageShader], [Gradient],
+  /// or other shader.
+  ///
+  /// The `blendMode` parameter is used to control how the colors in the
+  /// `vertices` are combined with the colors in the `paint`. If there are no
+  /// colors specified in `vertices` then the `blendMode` has no effect. If
+  /// there are colors in the `vertices`, then the color taken from the
+  /// [Paint.shader] or [Paint.color] in the `paint` is blended with the colors
+  /// specified in the `vertices` using the `blendMode` parameter. For the
+  /// purposes of this blending, the colors from the `paint` parameter are
+  /// considered the source, and the colors from the `vertices` are considered
+  /// the destination. [BlendMode.dstOver] ignores the `paint` and uses only the
+  /// colors of the `vertices`; [BlendMode.srcOver] ignores the colors of the
+  /// `vertices` and uses only the colors in the `paint`.
   ///
   /// All parameters must not be null.
   ///
@@ -6179,11 +6290,29 @@ class ImmutableBuffer extends NativeFieldWrapperClass1 {
     }).then((int length) => instance.._length = length);
   }
 
+  /// Create a buffer from the file with [path].
+  ///
+  /// Throws an [Exception] if the asset does not exist.
+  static Future<ImmutableBuffer> fromFilePath(String path) {
+    final ImmutableBuffer instance = ImmutableBuffer._(0);
+    return _futurize((_Callback<int> callback) {
+      return instance._initFromFile(path, callback);
+    }).then((int length) {
+      if (length == -1) {
+        throw Exception('Could not load file at $path.');
+      }
+      return instance.._length = length;
+    });
+  }
+
   @FfiNative<Handle Function(Handle, Handle, Handle)>('ImmutableBuffer::init')
   external String? _init(Uint8List list, _Callback<void> callback);
 
   @FfiNative<Handle Function(Handle, Handle, Handle)>('ImmutableBuffer::initFromAsset')
   external String? _initFromAsset(String assetKey, _Callback<int> callback);
+
+  @FfiNative<Handle Function(Handle, Handle, Handle)>('ImmutableBuffer::initFromFile')
+  external String? _initFromFile(String assetKey, _Callback<int> callback);
 
   /// The length, in bytes, of the underlying data.
   int get length => _length;

@@ -5,6 +5,7 @@
 #include "flutter/flow/compositor_context.h"
 
 #include <optional>
+#include <utility>
 #include "flutter/flow/layers/layer_tree.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 
@@ -80,12 +81,14 @@ std::unique_ptr<CompositorContext::ScopedFrame> CompositorContext::AcquireFrame(
     const SkMatrix& root_surface_transformation,
     bool instrumentation_enabled,
     bool surface_supports_readback,
-    fml::RefPtr<fml::RasterThreadMerger> raster_thread_merger,
-    DisplayListBuilder* display_list_builder) {
+    fml::RefPtr<fml::RasterThreadMerger>
+        raster_thread_merger,  // NOLINT(performance-unnecessary-value-param)
+    DisplayListBuilder* display_list_builder,
+    impeller::AiksContext* aiks_context) {
   return std::make_unique<ScopedFrame>(
       *this, gr_context, canvas, view_embedder, root_surface_transformation,
       instrumentation_enabled, surface_supports_readback, raster_thread_merger,
-      display_list_builder);
+      display_list_builder, aiks_context);
 }
 
 CompositorContext::ScopedFrame::ScopedFrame(
@@ -97,16 +100,18 @@ CompositorContext::ScopedFrame::ScopedFrame(
     bool instrumentation_enabled,
     bool surface_supports_readback,
     fml::RefPtr<fml::RasterThreadMerger> raster_thread_merger,
-    DisplayListBuilder* display_list_builder)
+    DisplayListBuilder* display_list_builder,
+    impeller::AiksContext* aiks_context)
     : context_(context),
       gr_context_(gr_context),
       canvas_(canvas),
       display_list_builder_(display_list_builder),
+      aiks_context_(aiks_context),
       view_embedder_(view_embedder),
       root_surface_transformation_(root_surface_transformation),
       instrumentation_enabled_(instrumentation_enabled),
       surface_supports_readback_(surface_supports_readback),
-      raster_thread_merger_(raster_thread_merger) {
+      raster_thread_merger_(std::move(raster_thread_merger)) {
   context_.BeginFrame(*this, instrumentation_enabled_);
 }
 

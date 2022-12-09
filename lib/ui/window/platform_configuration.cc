@@ -344,9 +344,7 @@ Dart_Handle PlatformConfigurationNativeApi::SendPortPlatformMessage(
           c_send_port, tonic::DartConverter<int64_t>::FromDart(identifier),
           name);
 
-  HandlePlatformMessage(dart_state, name, data_handle, response);
-
-  return Dart_Null();
+  return HandlePlatformMessage(dart_state, name, data_handle, response);
 }
 
 void PlatformConfigurationNativeApi::RespondToPlatformMessage(
@@ -368,14 +366,22 @@ void PlatformConfigurationNativeApi::RespondToPlatformMessage(
 }
 
 void PlatformConfigurationNativeApi::SetIsolateDebugName(
-    const std::string name) {
+    const std::string& name) {
   UIDartState::ThrowIfUIOperationsProhibited();
   UIDartState::Current()->SetDebugName(name);
 }
 
+Dart_PerformanceMode PlatformConfigurationNativeApi::current_performace_mode_ =
+    Dart_PerformanceMode_Default;
+
+Dart_PerformanceMode PlatformConfigurationNativeApi::GetDartPerformanceMode() {
+  return current_performace_mode_;
+}
+
 int PlatformConfigurationNativeApi::RequestDartPerformanceMode(int mode) {
   UIDartState::ThrowIfUIOperationsProhibited();
-  return Dart_SetPerformanceMode(static_cast<Dart_PerformanceMode>(mode));
+  current_performace_mode_ = static_cast<Dart_PerformanceMode>(mode);
+  return Dart_SetPerformanceMode(current_performace_mode_);
 }
 
 Dart_Handle PlatformConfigurationNativeApi::GetPersistentIsolateData() {

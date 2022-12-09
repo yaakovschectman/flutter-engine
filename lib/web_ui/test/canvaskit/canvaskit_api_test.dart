@@ -347,6 +347,47 @@ void _shaderTests() {
         ),
         isNotNull);
   });
+
+  test('RuntimeEffect', () {
+    // TODO(hterkelsen): Remove this check when local CanvasKit is default.
+    if (isRuntimeEffectAvailable) {
+      const String kSkSlProgram = r'''
+half4 main(vec2 fragCoord) {
+  return vec4(1.0, 0.0, 0.0, 1.0);
+}
+  ''';
+
+      final SkRuntimeEffect? effect = MakeRuntimeEffect(kSkSlProgram);
+      expect(effect, isNotNull);
+
+      const String kInvalidSkSlProgram = '';
+
+      // Invalid SkSL returns null.
+      final SkRuntimeEffect? invalidEffect = MakeRuntimeEffect(kInvalidSkSlProgram);
+      expect(invalidEffect, isNull);
+
+      final SkShader? shader = effect!.makeShader(<double>[]);
+      expect(shader, isNotNull);
+
+      // mismatched uniforms returns null.
+      final SkShader? invalidShader = effect.makeShader(<double>[1]);
+
+      expect(invalidShader, isNull);
+
+      const String kSkSlProgramWithUniforms = r'''
+uniform vec4 u_color;
+
+half4 main(vec2 fragCoord) {
+  return u_color;
+}
+  ''';
+
+      final SkShader? shaderWithUniform = MakeRuntimeEffect(kSkSlProgramWithUniforms)
+        !.makeShader(<double>[1.0, 0.0, 0.0, 1.0]);
+
+      expect(shaderWithUniform, isNotNull);
+    }
+  });
 }
 
 SkShader _makeTestShader() {
@@ -695,8 +736,7 @@ void _matrix4x4CompositionTests() {
     final bool areEqual =
         await fuzzyCompareImages(incrementalMatrixImage, combinedMatrixImage);
     expect(areEqual, true);
-  // TODO(hterkelsen): https://github.com/flutter/flutter/issues/109265
-  }, skip: isFirefox);
+  });
 }
 
 void _toSkRectTests() {
@@ -1342,6 +1382,22 @@ void _canvasTests() {
     );
   });
 
+  test('Paragraph converts caret position to charactor position', () {
+    final CkParagraphBuilder builder = CkParagraphBuilder(
+      CkParagraphStyle(),
+    );
+    builder.addText('Hello there');
+    final CkParagraph paragraph = builder.build();
+    paragraph.layout(const ui.ParagraphConstraints(width: 100));
+    ui.TextRange range = paragraph.getWordBoundary(const ui.TextPosition(offset: 5, affinity: ui.TextAffinity.upstream));
+    expect(range.start, 0);
+    expect(range.end, 5);
+
+    range = paragraph.getWordBoundary(const ui.TextPosition(offset: 5));
+    expect(range.start, 5);
+    expect(range.end, 6);
+  });
+
   test('Paragraph dispose', () {
     final CkParagraphBuilder builder = CkParagraphBuilder(
       CkParagraphStyle(),
@@ -1386,8 +1442,7 @@ void _canvasTests() {
     final ByteData pngData =
         await image.toByteData(format: ui.ImageByteFormat.png);
     expect(pngData.lengthInBytes, greaterThan(0));
-  // TODO(hterkelsen): https://github.com/flutter/flutter/issues/109265
-  }, skip: isFirefox);
+  });
 }
 
 void _textStyleTests() {
@@ -1451,8 +1506,8 @@ void _textStyleTests() {
 
 void _paragraphTests() {
   setUpAll(() async {
-    CanvasKitRenderer.instance.fontCollection.debugRegisterTestFonts();
-    await CanvasKitRenderer.instance.fontCollection.ensureFontsLoaded();
+    await CanvasKitRenderer.instance.fontCollection.debugDownloadTestFonts();
+    CanvasKitRenderer.instance.fontCollection.registerDownloadedFonts();
   });
 
   // This test is just a kitchen sink that blasts CanvasKit with all paragraph
@@ -1570,7 +1625,6 @@ void _paragraphTests() {
       await matchGoldenFile(
         'paragraph_kitchen_sink.png',
         region: const ui.Rect.fromLTRB(0, 0, 400, 160),
-        maxDiffRatePercent: 0.0,
       );
     }
 

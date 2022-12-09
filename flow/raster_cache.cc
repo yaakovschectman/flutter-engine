@@ -29,11 +29,11 @@ RasterCacheResult::RasterCacheResult(sk_sp<SkImage> image,
     : image_(std::move(image)), logical_rect_(logical_rect), flow_(type) {}
 
 void RasterCacheResult::draw(SkCanvas& canvas, const SkPaint* paint) const {
-  TRACE_EVENT0("flutter", "RasterCacheResult::draw");
   SkAutoCanvasRestore auto_restore(&canvas, true);
 
-  SkRect bounds = RasterCacheUtil::GetRoundedOutDeviceBounds(
-      logical_rect_, canvas.getTotalMatrix());
+  auto matrix = RasterCacheUtil::GetIntegralTransCTM(canvas.getTotalMatrix());
+  SkRect bounds =
+      RasterCacheUtil::GetRoundedOutDeviceBounds(logical_rect_, matrix);
   FML_DCHECK(std::abs(bounds.width() - image_->dimensions().width()) <= 1 &&
              std::abs(bounds.height() - image_->dimensions().height()) <= 1);
   canvas.resetMatrix();
@@ -54,10 +54,9 @@ std::unique_ptr<RasterCacheResult> RasterCache::Rasterize(
     const std::function<void(SkCanvas*)>& draw_function,
     const std::function<void(SkCanvas*, const SkRect& rect)>& draw_checkerboard)
     const {
-  TRACE_EVENT0("flutter", "RasterCachePopulate");
-
-  SkRect dest_rect = RasterCacheUtil::GetRoundedOutDeviceBounds(
-      context.logical_rect, context.matrix);
+  auto matrix = RasterCacheUtil::GetIntegralTransCTM(context.matrix);
+  SkRect dest_rect =
+      RasterCacheUtil::GetRoundedOutDeviceBounds(context.logical_rect, matrix);
 
   const SkImageInfo image_info =
       SkImageInfo::MakeN32Premul(dest_rect.width(), dest_rect.height(),
@@ -75,7 +74,7 @@ std::unique_ptr<RasterCacheResult> RasterCache::Rasterize(
   SkCanvas* canvas = surface->getCanvas();
   canvas->clear(SK_ColorTRANSPARENT);
   canvas->translate(-dest_rect.left(), -dest_rect.top());
-  canvas->concat(context.matrix);
+  canvas->concat(matrix);
   draw_function(canvas);
 
   if (checkerboard_images_) {
@@ -93,8 +92,8 @@ bool RasterCache::UpdateCacheEntry(
   RasterCacheKey key = RasterCacheKey(id, raster_cache_context.matrix);
   Entry& entry = cache_[key];
   if (!entry.image) {
-    entry.image =
-        Rasterize(raster_cache_context, render_function, DrawCheckerboard);
+    void (*func)(SkCanvas*, const SkRect& rect) = DrawCheckerboard;
+    entry.image = Rasterize(raster_cache_context, render_function, func);
     if (entry.image != nullptr) {
       switch (id.type()) {
         case RasterCacheKeyType::kDisplayList: {
@@ -113,8 +112,7 @@ bool RasterCache::UpdateCacheEntry(
 int RasterCache::MarkSeen(const RasterCacheKeyID& id,
                           const SkMatrix& matrix,
                           bool visible) const {
-  RasterCacheKey key =
-      RasterCacheKey(id, RasterCacheUtil::GetIntegralTransCTM(matrix));
+  RasterCacheKey key = RasterCacheKey(id, matrix);
   Entry& entry = cache_[key];
   entry.encountered_this_frame = true;
   entry.visible_this_frame = visible;
@@ -126,8 +124,7 @@ int RasterCache::MarkSeen(const RasterCacheKeyID& id,
 
 int RasterCache::GetAccessCount(const RasterCacheKeyID& id,
                                 const SkMatrix& matrix) const {
-  RasterCacheKey key =
-      RasterCacheKey(id, RasterCacheUtil::GetIntegralTransCTM(matrix));
+  RasterCacheKey key = RasterCacheKey(id, matrix);
   auto entry = cache_.find(key);
   if (entry != cache_.cend()) {
     return entry->second.accesses_since_visible;
@@ -137,8 +134,7 @@ int RasterCache::GetAccessCount(const RasterCacheKeyID& id,
 
 bool RasterCache::HasEntry(const RasterCacheKeyID& id,
                            const SkMatrix& matrix) const {
-  RasterCacheKey key =
-      RasterCacheKey(id, RasterCacheUtil::GetIntegralTransCTM(matrix));
+  RasterCacheKey key = RasterCacheKey(id, matrix);
   if (cache_.find(key) != cache_.cend()) {
     return true;
   }
@@ -148,8 +144,7 @@ bool RasterCache::HasEntry(const RasterCacheKeyID& id,
 bool RasterCache::Draw(const RasterCacheKeyID& id,
                        SkCanvas& canvas,
                        const SkPaint* paint) const {
-  auto it = cache_.find(RasterCacheKey(
-      id, RasterCacheUtil::GetIntegralTransCTM(canvas.getTotalMatrix())));
+  auto it = cache_.find(RasterCacheKey(id, canvas.getTotalMatrix()));
   if (it == cache_.end()) {
     return false;
   }

@@ -239,11 +239,13 @@ ParagraphBuilder::ParagraphBuilder(
     mask = encoded[0];
 
     if (mask & kPSTextAlignMask) {
-      style.text_align = txt::TextAlign(encoded[kPSTextAlignIndex]);
+      style.text_align =
+          static_cast<txt::TextAlign>(encoded[kPSTextAlignIndex]);
     }
 
     if (mask & kPSTextDirectionMask) {
-      style.text_direction = txt::TextDirection(encoded[kPSTextDirectionIndex]);
+      style.text_direction =
+          static_cast<txt::TextDirection>(encoded[kPSTextDirectionIndex]);
     }
 
     if (mask & kPSFontWeightMask) {
@@ -470,6 +472,9 @@ void ParagraphBuilder::pushStyle(const tonic::Int32List& encoded,
       SkPaint sk_paint;
       style.has_background = true;
       style.background = *background.paint(sk_paint);
+      DlPaint dl_paint;
+      background.toDlPaint(dl_paint);
+      style.background_dl = dl_paint;
     }
   }
 
@@ -479,6 +484,9 @@ void ParagraphBuilder::pushStyle(const tonic::Int32List& encoded,
       SkPaint sk_paint;
       style.has_foreground = true;
       style.foreground = *foreground.paint(sk_paint);
+      DlPaint dl_paint;
+      foreground.toDlPaint(dl_paint);
+      style.foreground_dl = dl_paint;
     }
   }
 

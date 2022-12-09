@@ -83,6 +83,7 @@ typedef CanvasPath Path;
   V(ImageDescriptor::initEncoded, 3)                                  \
   V(ImmutableBuffer::init, 3)                                         \
   V(ImmutableBuffer::initFromAsset, 3)                                \
+  V(ImmutableBuffer::initFromFile, 3)                                 \
   V(ImageDescriptor::initRaw, 6)                                      \
   V(IsolateNameServerNatives::LookupPortByName, 1)                    \
   V(IsolateNameServerNatives::RegisterPortWithName, 2)                \
@@ -172,9 +173,9 @@ typedef CanvasPath Path;
   V(ColorFilter, initSrgbToLinearGamma, 1)             \
   V(EngineLayer, dispose, 1)                           \
   V(FragmentProgram, initFromAsset, 2)                 \
-  V(FragmentProgram, shader, 4)                        \
   V(ReusableFragmentShader, Dispose, 1)                \
-  V(ReusableFragmentShader, SetSampler, 3)             \
+  V(ReusableFragmentShader, SetImageSampler, 3)        \
+  V(ReusableFragmentShader, ValidateSamplers, 1)       \
   V(Gradient, initLinear, 6)                           \
   V(Gradient, initRadial, 8)                           \
   V(Gradient, initSweep, 9)                            \
@@ -293,6 +294,10 @@ typedef CanvasPath Path;
   V(SemanticsUpdate, dispose, 1)                       \
   V(Vertices, dispose, 1)
 
+#ifdef IMPELLER_ENABLE_3D
+#define FFI_METHOD_LIST_3D(V) V(SceneBuilder::addModelLayer, 7)
+#endif  // IMPELLER_ENABLE_3D
+
 #define FFI_FUNCTION_INSERT(FUNCTION, ARGS)     \
   g_function_dispatchers.insert(std::make_pair( \
       std::string_view(#FUNCTION),              \
@@ -319,6 +324,9 @@ void* ResolveFfiNativeFunction(const char* name, uintptr_t args) {
 void InitDispatcherMap() {
   FFI_FUNCTION_LIST(FFI_FUNCTION_INSERT)
   FFI_METHOD_LIST(FFI_METHOD_INSERT)
+#ifdef IMPELLER_ENABLE_3D
+  FFI_METHOD_LIST_3D(FFI_FUNCTION_INSERT)
+#endif  // IMPELLER_ENABLE_3D
 }
 
 }  // anonymous namespace

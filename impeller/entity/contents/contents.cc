@@ -8,6 +8,7 @@
 #include "fml/logging.h"
 #include "impeller/entity/contents/content_context.h"
 #include "impeller/renderer/command_buffer.h"
+#include "impeller/renderer/formats.h"
 #include "impeller/renderer/render_pass.h"
 
 namespace impeller {
@@ -50,7 +51,7 @@ std::optional<Snapshot> Contents::RenderToSnapshot(
       [&contents = *this, &entity, &coverage](const ContentContext& renderer,
                                               RenderPass& pass) -> bool {
         Entity sub_entity;
-        sub_entity.SetBlendMode(Entity::BlendMode::kSourceOver);
+        sub_entity.SetBlendMode(BlendMode::kSourceOver);
         sub_entity.SetTransformation(
             Matrix::MakeTranslation(Vector3(-coverage->origin)) *
             entity.GetTransformation());
@@ -77,6 +78,9 @@ bool Contents::ShouldRender(const Entity& entity,
   auto coverage = GetCoverage(entity);
   if (!coverage.has_value()) {
     return false;
+  }
+  if (coverage == Rect::MakeMaximum()) {
+    return true;
   }
   return stencil_coverage->IntersectsWithRect(coverage.value());
 }
