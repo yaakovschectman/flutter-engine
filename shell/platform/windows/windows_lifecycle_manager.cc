@@ -18,8 +18,12 @@ WindowsLifecycleManager::WindowsLifecycleManager(FlutterWindowsEngine* engine)
 
 WindowsLifecycleManager::~WindowsLifecycleManager() {}
 
-void WindowsLifecycleManager::Quit(UINT exit_code) const {
-  ::PostQuitMessage(exit_code);
+void WindowsLifecycleManager::Quit(UINT exit_code, HWND window) const {
+  if (window == nullptr) {
+    ::PostQuitMessage(exit_code);
+  } else {
+    ::DestroyWindow(window);
+  }
 }
 
 bool WindowsLifecycleManager::WindowProc(HWND hwnd,
@@ -30,7 +34,7 @@ bool WindowsLifecycleManager::WindowProc(HWND hwnd,
   switch (msg) {
     case WM_CLOSE:
       if (IsLastWindowOfProcess()) {
-        engine_->RequestApplicationQuit(ExitType::cancelable, 0);
+        engine_->RequestApplicationQuit(ExitType::cancelable, 0, hwnd);
       }
       return true;
   }

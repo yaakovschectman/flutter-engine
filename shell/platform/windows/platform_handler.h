@@ -45,8 +45,10 @@ class PlatformHandler {
   static constexpr char kExitTypeRequired[] = "required";
 
   // Send a request to the framework to test if a cancelable exit request
-  // should be canceled or honored.
-  virtual void RequestAppExit(ExitType exit_type, UINT exit_code);
+  // should be canceled or honored. When window is non-null, it represents a
+  // window handle that this request intends to destroy, in which case,
+  // exit_code is unused.
+  virtual void RequestAppExit(ExitType exit_type, UINT exit_code, HWND window);
 
  protected:
   // Gets plain text from the clipboard and provides it to |result| as the
@@ -76,13 +78,15 @@ class PlatformHandler {
       UINT exit_code,
       std::unique_ptr<MethodResult<rapidjson::Document>> result);
 
-  // Actually quit the application with the provided exit code.
-  virtual void QuitApplication(UINT exit_code);
+  // Actually quit the application with the provided exit code, or close the.
+  // specified window. When window is non-null, exit-code is not used.
+  virtual void QuitApplication(UINT exit_code, HWND window);
 
   // Callback from when the cancelable exit request response request is
-  // answered by the framework.
+  // answered by the framework. When window is non-null, exit-code is not used.
   virtual void RequestAppExitSuccess(const rapidjson::Document* result,
-                                     UINT exit_code);
+                                     UINT exit_code,
+                                     HWND window);
 
   // A error type to use for error responses.
   static constexpr char kClipboardError[] = "Clipboard error";

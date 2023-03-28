@@ -22,7 +22,12 @@ class WindowsLifecycleManager {
   WindowsLifecycleManager(FlutterWindowsEngine* engine);
   virtual ~WindowsLifecycleManager();
 
-  virtual void Quit(UINT exit_code) const;
+  // The window paramter optionally passes a handle to a window. When the
+  // parameter is null, the call to this method is interpreted as a signal to
+  // quit the application. When it is a valid window handle, the method call is
+  // interpreted as a signal to destroy that window. When window is non-null,
+  // exit-code is not used.
+  virtual void Quit(UINT exit_code, HWND window) const;
 
   bool WindowProc(HWND hwnd, UINT msg, WPARAM w, LPARAM l, LRESULT* result);
 
